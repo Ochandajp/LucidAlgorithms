@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Terms & Conditions | Lucid Algorithms</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background: #0a0a0a;
+            color: #e0e0e0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 100px 20px 60px;
+        }
+
+        .terms-card {
+            background: #111;
+            border-radius: 24px;
+            border: 1px solid #333;
+            padding: 40px;
+        }
+
+        @media (max-width: 768px) {
+            .terms-card {
+                padding: 25px;
+            }
+        }
+
+        .terms-header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #333;
+        }
+
+        .terms-header h1 {
+            font-size: 32px;
+            color: #ccc;
+            margin-bottom: 10px;
+        }
+
+        .terms-header .version {
+            color: #888;
+            font-size: 13px;
+        }
+
+        .terms-header .effective-date {
+            color: #888;
+            font-size: 12px;
+            margin-top: 8px;
+        }
+
+        .toc {
+            background: #1a1a1a;
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 1px solid #333;
+        }
+
+        .toc h2 {
+            font-size: 18px;
+            color: #aaa;
+            margin-bottom: 15px;
+        }
+
+        .toc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 10px;
+        }
+
+        .toc-item {
+            padding: 8px 12px;
+            color: #888;
+            text-decoration: none;
+            font-size: 13px;
+            display: block;
+            transition: 0.2s;
+        }
+
+        .toc-item:hover {
+            color: #aaa;
+            background: #2a2a2a;
+            border-radius: 8px;
+        }
+
+        .section {
+            margin-bottom: 35px;
+            padding-bottom: 25px;
+            border-bottom: 1px solid #2a2a2a;
+        }
+
+        .section:last-child {
+            border-bottom: none;
+        }
+
+        .section h2 {
+            font-size: 24px;
+            color: #aaa;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #333;
+        }
+
+        .section h3 {
+            font-size: 18px;
+            color: #999;
+            margin: 20px 0 12px 0;
+        }
+
+        .section h4 {
+            font-size: 16px;
+            color: #888;
+            margin: 15px 0 10px 0;
+        }
+
+        .section p {
+            line-height: 1.7;
+            margin-bottom: 15px;
+            color: #ccc;
+            font-size: 14px;
+        }
+
+        .section ul, .section ol {
+            margin: 15px 0 15px 30px;
+            line-height: 1.7;
+            color: #ccc;
+            font-size: 14px;
+        }
+
+        .section li {
+            margin-bottom: 8px;
+        }
+
+        .warning-box {
+            background: rgba(191,111,111,0.1);
+            border-left: 4px solid #bf6f6f;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 12px;
+        }
+
+        .warning-box i {
+            color: #bf6f6f;
+            font-size: 20px;
+            margin-right: 10px;
+        }
+
+        .info-box {
+            background: rgba(100,100,100,0.1);
+            border-left: 4px solid #888;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 12px;
+        }
+
+        .legal-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 13px;
+        }
+
+        .legal-table th, .legal-table td {
+            border: 1px solid #333;
+            padding: 12px;
+            text-align: left;
+        }
+
+        .legal-table th {
+            background: #1a1a1a;
+            color: #aaa;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 10px 20px;
+            background: #2a2a2a;
+            border-radius: 10px;
+            color: #ccc;
+            text-decoration: none;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+
+        .back-link:hover {
+            background: #3a3a3a;
+        }
+
+        .signature-area {
+            margin-top: 40px;
+            padding: 30px;
+            background: #1a1a1a;
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .risk-disclaimer {
+            background: #1a0a0a;
+            border: 1px solid #bf6f6f;
+            border-radius: 16px;
+            padding: 25px;
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        .risk-disclaimer h3 {
+            color: #bf6f6f;
+        }
+
+        @media print {
+            body {
+                background: white;
+                color: black;
+            }
+            .terms-card {
+                background: white;
+                border: none;
+                padding: 20px;
+            }
+            .back-link, .toc {
+                display: none;
+            }
+            .section h2 {
+                page-break-after: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="terms-card">
+        <div class="terms-header">
+            <h1>Terms & Conditions of Use</h1>
+            <div class="version">Version 4.0 | Last Updated: November 15, 2024</div>
+            <div class="effective-date">Effective Date: December 1, 2024</div>
+        </div>
+
+        <div class="toc">
+            <h2><i class="fas fa-list"></i> Table of Contents</h2>
+            <div class="toc-grid">
+                <a href="#section1" class="toc-item">1. Introduction and Acceptance</a>
+                <a href="#section2" class="toc-item">2. Definitions</a>
+                <a href="#section3" class="toc-item">3. Eligibility and Account Registration</a>
+                <a href="#section4" class="toc-item">4. Investment and Trading Terms</a>
+                <a href="#section5" class="toc-item">5. AI Trading System</a>
+                <a href="#section6" class="toc-item">6. Risk Disclosure Statement</a>
+                <a href="#section7" class="toc-item">7. Fees and Charges</a>
+                <a href="#section8" class="toc-item">8. Deposits and Withdrawals</a>
+                <a href="#section9" class="toc-item">9. User Responsibilities</a>
+                <a href="#section10" class="toc-item">10. Prohibited Activities</a>
+                <a href="#section11" class="toc-item">11. Intellectual Property</a>
+                <a href="#section12" class="toc-item">12. Privacy and Data Protection</a>
+                <a href="#section13" class="toc-item">13. Termination and Suspension</a>
+                <a href="#section14" class="toc-item">14. Limitation of Liability</a>
+                <a href="#section15" class="toc-item">15. Indemnification</a>
+                <a href="#section16" class="toc-item">16. Dispute Resolution and Arbitration</a>
+                <a href="#section17" class="toc-item">17. Governing Law</a>
+                <a href="#section18" class="toc-item">18. Amendments to Terms</a>
+                <a href="#section19" class="toc-item">19. Miscellaneous Provisions</a>
+                <a href="#section20" class="toc-item">20. Contact Information</a>
+                <a href="#section21" class="toc-item">21. Force Majeure</a>
+                <a href="#section22" class="toc-item">22. Severability</a>
+                <a href="#section23" class="toc-item">23. Entire Agreement</a>
+                <a href="#section24" class="toc-item">24. Waiver</a>
+                <a href="#section25" class="toc-item">25. Assignment</a>
+            </div>
+        </div>
+
+        <div class="risk-disclaimer">
+            <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #bf6f6f; margin-bottom: 15px; display: block;"></i>
+            <h3>⚠️ IMPORTANT RISK WARNING ⚠️</h3>
+            <p style="margin-top: 15px;"><strong>Trading digital assets and using AI trading systems involves significant risk. You may lose ALL of your invested capital. Past performance does not guarantee future results. You are solely responsible for your investment decisions and any losses incurred.</strong></p>
+            <p style="margin-top: 10px;">NEVER invest money you cannot afford to lose. Lucid Algorithms does not guarantee any returns or profits. Trading is NOT suitable for all investors.</p>
+        </div>
+
+        <!-- SECTION 1 -->
+        <div id="section1" class="section">
+            <h2>1. Introduction and Acceptance</h2>
+            <p><strong>1.1</strong> Welcome to Lucid Algorithms ("Company," "we," "our," "us"). These Terms and Conditions ("Terms") govern your access to and use of our website, mobile applications, trading platform, and related services (collectively, the "Platform"). By registering for an account, accessing our Platform, or using any of our services, you acknowledge that you have read, understood, and agree to be bound by these Terms.</p>
+            <p><strong>1.2</strong> IF YOU DO NOT AGREE TO THESE TERMS, YOU MUST NOT CREATE AN ACCOUNT OR USE OUR PLATFORM.</p>
+            <p><strong>1.3</strong> These Terms constitute a legally binding agreement between you ("User," "you," "your") and Lucid Algorithms. You affirm that you are of legal age to enter into this agreement and are fully able and competent to understand and accept the risks associated with trading.</p>
+            <p><strong>1.4</strong> We reserve the right to modify, update, or change these Terms at any time without prior individual notice. Your continued use of the Platform after any changes constitutes your acceptance of the revised Terms. It is your responsibility to review these Terms periodically.</p>
+        </div>
+
+        <!-- SECTION 2 -->
+        <div id="section2" class="section">
+            <h2>2. Definitions</h2>
+            <p><strong>2.1 "Account"</strong> means your registered user account on the Lucid Algorithms Platform.</p>
+            <p><strong>2.2 "AI Trading"</strong> refers to automated trading decisions generated by our artificial intelligence algorithms.</p>
+            <p><strong>2.3 "Balance"</strong> means the total funds available in your Account for trading or withdrawal.</p>
+            <p><strong>2.4 "Demo Account"</strong> means a simulated trading environment using virtual funds ($10,000 USD) for practice and testing purposes only.</p>
+            <p><strong>2.5 "Real Account"</strong> means your actual trading account funded with real money.</p>
+            <p><strong>2.6 "Trade"</strong> means a buy or sell position opened through our Platform.</p>
+            <p><strong>2.7 "Investment"</strong> means the amount of funds you allocate to a specific trade.</p>
+            <p><strong>2.8 "Profit"</strong> means the positive return generated from a successful trade, capped at 88% of your investment amount.</p>
+            <p><strong>2.9 "Loss"</strong> means the negative return from an unsuccessful trade, limited to the maximum loss policy.</p>
+            <p><strong>2.10 "Withdrawal"</strong> means the process of transferring funds from your Real Account to an external wallet.</p>
+            <p><strong>2.11 "Deposit"</strong> means the process of adding funds to your Real Account.</p>
+            <p><strong>2.12 "USDT"</strong> refers to Tether, a stablecoin pegged to the US Dollar.</p>
+            <p><strong>2.13 "Passkey"</strong> means your unique AI trading authorization code provided by administrators.</p>
+        </div>
+
+        <!-- SECTION 3 -->
+        <div id="section3" class="section">
+            <h2>3. Eligibility and Account Registration</h2>
+            <p><strong>3.1</strong> To register for an Account, you must:</p>
+            <ul>
+                <li>Be at least 18 years of age or the legal age of majority in your jurisdiction</li>
+                <li>Have full legal capacity to enter into binding contracts</li>
+                <li>Not be located in a jurisdiction where trading digital assets is prohibited by law</li>
+                <li>Not be on any sanctions list or restricted party list</li>
+                <li>Provide accurate, complete, and truthful information during registration</li>
+                <li>Maintain the confidentiality of your Account credentials</li>
+            </ul>
+            <p><strong>3.2</strong> You agree to provide current, complete, and accurate information during the registration process and to update such information as necessary to keep it current, complete, and accurate.</p>
+            <p><strong>3.3</strong> You are solely responsible for maintaining the confidentiality of your password and Account information. You agree to immediately notify us of any unauthorized use of your Account or any other breach of security.</p>
+            <p><strong>3.4</strong> We reserve the right to refuse registration, suspend, or terminate any Account at our sole discretion, without prior notice or liability.</p>
+            <p><strong>3.5</strong> Each user is permitted to maintain only one Account. Creating multiple accounts is strictly prohibited and may result in all associated accounts being terminated.</p>
+            <p><strong>3.6</strong> You acknowledge that we may perform verification checks to confirm your identity and compliance with these Terms.</p>
+        </div>
+
+        <!-- SECTION 4 -->
+        <div id="section4" class="section">
+            <h2>4. Investment and Trading Terms</h2>
+            <p><strong>4.1 Minimum Investment Amounts:</strong></p>
+            <ul>
+                <li>AI Trading Minimum: $115 USD per trade</li>
+                <li>Minimum Deposit: $60 USD</li>
+                <li>Minimum Withdrawal: $50 USD</li>
+            </ul>
+            <p><strong>4.2 Profit Structure:</strong> When a trade is successful, you will receive a profit equal to 88% of your invested amount. For example, a $100 investment that wins returns $188 ($100 original stake + $88 profit).</p>
+            <p><strong>4.3 Loss Structure:</strong> When a trade is unsuccessful, the maximum loss per trade is capped at $10 USD (or 100% of investment for amounts under $10). For investments over $115, the maximum loss is $10.</p>
+            <p><strong>4.4 Trade Duration:</strong> Trades have predetermined durations that you select before execution. Trades will ONLY complete when the full duration time has elapsed. Early stopping may result in losses.</p>
+            <p><strong>4.5 Trade Completion:</strong> Upon trade completion, your original investment plus any profit (or minus any loss) will be returned to your Account balance automatically.</p>
+            <p><strong>4.6 No Guaranteed Returns:</strong> WE DO NOT AND CANNOT GUARANTEE ANY PROFITS OR RETURNS. Trading results are uncertain and depend on market conditions, which are beyond our control.</p>
+            <div class="warning-box">
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>IMPORTANT:</strong> The 88% profit cap is a maximum potential return. Actual returns may vary. Not all trades will be winning trades. Historical performance does not predict future results.
+            </div>
+        </div>
+
+        <!-- SECTION 5 -->
+        <div id="section5" class="section">
+            <h2>5. AI Trading System</h2>
+            <p><strong>5.1</strong> Lucid Algorithms provides an AI-powered trading system that uses machine learning algorithms to analyze market data and generate trading signals.</p>
+            <p><strong>5.2</strong> The AI system operates based on historical data, technical indicators, and market patterns. However, no AI system can predict future market movements with certainty.</p>
+            <p><strong>5.3</strong> AI trading decisions are generated automatically. You acknowledge that the AI may make trading decisions that result in losses.</p>
+            <p><strong>5.4</strong> You must obtain a valid Passkey from an administrator to activate AI trading features. Passkeys are unique to each user and must be kept confidential.</p>
+            <p><strong>5.5</strong> The AI system may experience downtime, errors, or bugs. We do not guarantee uninterrupted or error-free operation of the AI trading system.</p>
+            <p><strong>5.6</strong> You understand that the AI system is a tool to assist with trading decisions, but ultimate responsibility for all trades remains with you.</p>
+            <p><strong>5.7</strong> We reserve the right to modify, update, or discontinue the AI trading system at any time without prior notice.</p>
+            <div class="info-box">
+                <i class="fas fa-robot"></i>
+                <strong>AI Disclaimer:</strong> The AI trading system is provided "as is" without warranties of any kind. We do not warrant that the AI will always make profitable decisions or that it will be free from errors.
+            </div>
+        </div>
+
+        <!-- SECTION 6 -->
+        <div id="section6" class="section">
+            <h2>6. Risk Disclosure Statement</h2>
+            <p><strong>6.1 TRADING IS HIGHLY RISKY:</strong> Trading digital assets, cryptocurrencies, forex, commodities, and indices involves substantial risk of loss. You may lose your entire investment.</p>
+            <p><strong>6.2 Market Volatility:</strong> Digital asset markets are extremely volatile. Prices can fluctuate dramatically within short periods, resulting in rapid and substantial losses.</p>
+            <p><strong>6.3 No FDIC or SIPC Insurance:</strong> Funds held in your Account are NOT insured by the FDIC, SIPC, or any governmental agency. You bear full responsibility for your funds.</p>
+            <p><strong>6.4 Technology Risks:</strong> Trading platforms may experience technical failures, including but not limited to: system crashes, connectivity issues, hacking attempts, cyber attacks, and data breaches.</p>
+            <p><strong>6.5 Regulatory Risks:</strong> Cryptocurrency regulations vary by jurisdiction and may change rapidly. Such changes may impact your ability to trade or access funds.</p>
+            <p><strong>6.6 Counterparty Risk:</strong> While we implement security measures, no system is completely secure. You acknowledge that funds held on the Platform could be lost due to security breaches.</p>
+            <p><strong>6.7 Liquidity Risk:</strong> Certain assets may have limited liquidity, making it difficult to execute trades at desired prices.</p>
+            <p><strong>6.8 Leverage Risk:</strong> Using leverage amplifies both potential gains AND potential losses. You may lose more than your initial investment.</p>
+            <p><strong>6.9 Psychological Risk:</strong> Trading can be emotionally stressful. You acknowledge that emotional decision-making may lead to poor trading outcomes.</p>
+            <p><strong>6.10 YOU ASSUME ALL RISKS:</strong> By using our Platform, you acknowledge and accept ALL risks associated with trading. You agree that you are solely responsible for any and all losses.</p>
+            <div class="warning-box">
+                <i class="fas fa-skull-crossbones"></i>
+                <strong>YOU CAN LOSE ALL YOUR MONEY</strong><br>
+                Trading is NOT suitable for everyone. You should never invest money you cannot afford to lose. If you are unsure, consult with an independent financial advisor before trading.
+            </div>
+        </div>
+
+        <!-- SECTION 7 -->
+        <div id="section7" class="section">
+            <h2>7. Fees and Charges</h2>
+            <p><strong>7.1 Withdrawal Fee:</strong> A 2% fee applies to all withdrawal requests. For example, a $100 withdrawal incurs a $2 fee, and you receive $98.</p>
+            <p><strong>7.2 Deposit Fee:</strong> There are no deposit fees charged by Lucid Algorithms. However, network fees (gas fees) may apply based on the blockchain network used.</p>
+            <p><strong>7.3 Trading Fees:</strong> There are no separate trading commissions. The profit structure (88% cap) incorporates all trading costs.</p>
+            <p><strong>7.4 Inactivity Fee:</strong> Accounts inactive for more than 6 months may be subject to a monthly $5 inactivity fee.</p>
+            <p><strong>7.5 Fee Changes:</strong> We reserve the right to modify fees at any time with reasonable notice. Continued use of the Platform after fee changes constitutes acceptance.</p>
+            <p><strong>7.6 Tax Responsibility:</strong> You are solely responsible for reporting and paying any taxes applicable to your trading activities. We do not provide tax advice.</p>
+        </div>
+
+        <!-- SECTION 8 -->
+        <div id="section8" class="section">
+            <h2>8. Deposits and Withdrawals</h2>
+            <p><strong>8.1 Deposits:</strong> All deposits must be made through our approved payment providers. You may only deposit funds from accounts or wallets that you legally own.</p>
+            <p><strong>8.2 Deposit Confirmation:</strong> Deposits are credited to your Account only after confirmation by an administrator. This process may take 10-30 minutes.</p>
+            <p><strong>8.3 Withdrawal Processing:</strong> Withdrawal requests are processed within 24-48 hours after admin approval. We do not guarantee instant withdrawals.</p>
+            <p><strong>8.4 Withdrawal Addresses:</strong> You must provide accurate wallet addresses. We are not responsible for funds sent to incorrect addresses.</p>
+            <p><strong>8.5 Withdrawal Limits:</strong> Maximum withdrawal per request is $10,000 USD. Multiple requests may be submitted.</p>
+            <p><strong>8.6 Verification:</strong> We may require identity verification before processing large withdrawals or certain transactions.</p>
+            <p><strong>8.7 Rejected Withdrawals:</strong> If a withdrawal is rejected, funds are returned to your Account balance.</p>
+            <p><strong>8.8 Demo Account Withdrawals:</strong> Withdrawals are NOT available from Demo Accounts. Demo balances are virtual and have no real monetary value.</p>
+        </div>
+
+        <!-- SECTION 9 -->
+        <div id="section9" class="section">
+            <h2>9. User Responsibilities</h2>
+            <p><strong>9.1</strong> You are solely responsible for all trading decisions made through your Account, including AI-generated trades.</p>
+            <p><strong>9.2</strong> You agree to maintain the security of your Account credentials and not share them with any third party.</p>
+            <p><strong>9.3</strong> You are responsible for monitoring your Account activity and reporting any unauthorized transactions immediately.</p>
+            <p><strong>9.4</strong> You agree to comply with all applicable laws and regulations in your jurisdiction.</p>
+            <p><strong>9.5</strong> You are responsible for understanding the tax implications of your trading activities.</p>
+            <p><strong>9.6</strong> You agree to provide accurate information and update it promptly when changes occur.</p>
+            <p><strong>9.7</strong> You are responsible for maintaining adequate internet connectivity and device functionality.</p>
+            <p><strong>9.8</strong> You acknowledge that you have read, understood, and accepted all risks associated with trading.</p>
+        </div>
+
+        <!-- SECTION 10 -->
+        <div id="section10" class="section">
+            <h2>10. Prohibited Activities</h2>
+            <p>The following activities are strictly prohibited:</p>
+            <ul>
+                <li><strong>Money Laundering:</strong> Using the Platform for any money laundering or illegal activities</li>
+                <li><strong>Fraud:</strong> Any form of fraudulent activity, including identity theft and payment fraud</li>
+                <li><strong>Market Manipulation:</strong> Attempting to manipulate prices or trading volumes</li>
+                <li><strong>Multiple Accounts:</strong> Creating or operating multiple user accounts</li>
+                <li><strong>Automated Scripts:</strong> Using bots or automated scripts not authorized by us</li>
+                <li><strong>Abuse:</strong> Harassing, threatening, or abusing staff or other users</li>
+                <li><strong>Hacking:</strong> Attempting to hack, breach, or circumvent Platform security</li>
+                <li><strong>Reverse Engineering:</strong> Reverse engineering our software or algorithms</li>
+                <li><strong>Unauthorized Access:</strong> Accessing other users' accounts without permission</li>
+                <li><strong>Illegal Content:</strong> Posting illegal, obscene, or offensive content</li>
+                <li><strong>Chargebacks:</strong> Initiating fraudulent chargebacks or payment disputes</li>
+                <li><strong>Sanctions Violations:</strong> Using the Platform from sanctioned jurisdictions</li>
+            </ul>
+            <p>Violation of these prohibitions may result in immediate Account termination, forfeiture of funds, and legal action.</p>
+        </div>
+
+        <!-- SECTION 11 -->
+        <div id="section11" class="section">
+            <h2>11. Intellectual Property</h2>
+            <p><strong>11.1</strong> All content on the Platform, including but not limited to text, graphics, logos, icons, images, audio clips, video clips, data compilations, and software, is the property of Lucid Algorithms or its content suppliers and is protected by international copyright laws.</p>
+            <p><strong>11.2</strong> The Lucid Algorithms name, logo, and all related names, logos, product and service names, designs, and slogans are trademarks of Lucid Algorithms.</p>
+            <p><strong>11.3</strong> You may not reproduce, distribute, modify, create derivative works of, publicly display, publicly perform, republish, download, store, or transmit any of our intellectual property without our prior written consent.</p>
+            <p><strong>11.4</strong> The AI algorithms and trading systems are proprietary trade secrets. You agree not to reverse engineer, decompile, or disassemble any part of our technology.</p>
+        </div>
+
+        <!-- SECTION 12 -->
+        <div id="section12" class="section">
+            <h2>12. Privacy and Data Protection</h2>
+            <p><strong>12.1</strong> We collect and process personal information as described in our Privacy Policy, which is incorporated into these Terms.</p>
+            <p><strong>12.2</strong> You consent to our collection, use, and disclosure of your personal information as described in the Privacy Policy.</p>
+            <p><strong>12.3</strong> We implement reasonable security measures to protect your data, but no system is 100% secure.</p>
+            <p><strong>12.4</strong> We may share your information with third-party service providers for Platform operation.</p>
+            <p><strong>12.5</strong> We may disclose your information to comply with legal obligations or enforce our rights.</p>
+            <p><strong>12.6</strong> You have the right to access, correct, or delete your personal information, subject to legal retention requirements.</p>
+        </div>
+
+        <!-- SECTION 13 -->
+        <div id="section13" class="section">
+            <h2>13. Termination and Suspension</h2>
+            <p><strong>13.1</strong> You may terminate your Account at any time by contacting support. Upon termination, remaining funds will be returned after verification, subject to applicable fees.</p>
+            <p><strong>13.2</strong> We may suspend or terminate your Account immediately without notice if:</p>
+            <ul>
+                <li>You violate these Terms</li>
+                <li>You engage in prohibited activities</li>
+                <li>We suspect fraudulent or illegal activity</li>
+                <li>Required by law or regulation</li>
+                <li>Your Account is inactive for extended periods</li>
+                <li>You provide false or misleading information</li>
+            </ul>
+            <p><strong>13.3</strong> Upon termination, you lose access to your Account and any pending trades may be closed.</p>
+            <p><strong>13.4</strong> We reserve the right to freeze funds pending investigation of suspected violations.</p>
+        </div>
+
+        <!-- SECTION 14 -->
+        <div id="section14" class="section">
+            <h2>14. Limitation of Liability</h2>
+            <p><strong>14.1 TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL LUCID ALGORITHMS, ITS OFFICERS, DIRECTORS, EMPLOYEES, AGENTS, OR AFFILIATES BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING WITHOUT LIMITATION, LOSS OF PROFITS, LOSS OF DATA, LOSS OF GOODWILL, OR OTHER INTANGIBLE LOSSES, RESULTING FROM:</strong></p>
+            <ul>
+                <li>Your use or inability to use the Platform</li>
+                <li>Any unauthorized access to or use of our servers and/or any personal information stored therein</li>
+                <li>Any interruption or cessation of transmission to or from the Platform</li>
+                <li>Any bugs, viruses, trojan horses, or the like that may be transmitted to or through the Platform</li>
+                <li>Any errors or omissions in any content or for any loss or damage incurred as a result of the use of any content posted, emailed, transmitted, or otherwise made available through the Platform</li>
+                <li>The loss of any funds due to market volatility, technical issues, or trading decisions</li>
+            </ul>
+            <p><strong>14.2 OUR TOTAL LIABILITY TO YOU FOR ANY CLAIMS ARISING FROM THESE TERMS OR YOUR USE OF THE PLATFORM SHALL NOT EXCEED THE TOTAL AMOUNT OF FEES PAID BY YOU TO US IN THE SIX (6) MONTHS PRECEDING THE CLAIM.</strong></p>
+            <p><strong>14.3 SOME JURISDICTIONS DO NOT ALLOW THE EXCLUSION OR LIMITATION OF LIABILITY FOR CONSEQUENTIAL OR INCIDENTAL DAMAGES, SO THE ABOVE LIMITATIONS MAY NOT APPLY TO YOU.</strong></p>
+        </div>
+
+        <!-- SECTION 15 -->
+        <div id="section15" class="section">
+            <h2>15. Indemnification</h2>
+            <p>You agree to indemnify, defend, and hold harmless Lucid Algorithms and its officers, directors, employees, agents, and affiliates from and against any and all claims, damages, obligations, losses, liabilities, costs, or debt, and expenses (including but not limited to attorney's fees) arising from:</p>
+            <ul>
+                <li>Your use of and access to the Platform</li>
+                <li>Your violation of any term of these Terms</li>
+                <li>Your violation of any third-party right, including without limitation any copyright, property, or privacy right</li>
+                <li>Any claim that your use of the Platform caused damage to a third party</li>
+                <li>Your trading activities and any resulting losses</li>
+            </ul>
+        </div>
+
+        <!-- SECTION 16 -->
+        <div id="section16" class="section">
+            <h2>16. Dispute Resolution and Arbitration</h2>
+            <p><strong>16.1</strong> Any dispute, claim, or controversy arising out of or relating to these Terms or the breach, termination, enforcement, interpretation, or validity thereof, including the determination of the scope or applicability of this agreement to arbitrate, shall be determined by binding arbitration.</p>
+            <p><strong>16.2</strong> The arbitration shall be administered by a recognized arbitration body in accordance with its commercial arbitration rules.</p>
+            <p><strong>16.3</strong> The arbitration shall take place in a neutral location as agreed by the parties.</p>
+            <p><strong>16.4</strong> The arbitrator's decision shall be final and binding, and judgment on the award rendered by the arbitrator may be entered in any court having jurisdiction thereof.</p>
+            <p><strong>16.5</strong> YOU AGREE THAT ANY ARBITRATION WILL BE CONDUCTED ON AN INDIVIDUAL BASIS AND NOT IN A CLASS, CONSOLIDATED, OR REPRESENTATIVE ACTION.</p>
+            <p><strong>16.6</strong> Notwithstanding the foregoing, either party may seek injunctive or other equitable relief in court to protect its intellectual property rights.</p>
+        </div>
+
+        <!-- SECTION 17 -->
+        <div id="section17" class="section">
+            <h2>17. Governing Law</h2>
+            <p><strong>17.1</strong> These Terms shall be governed by and construed in accordance with the laws of the jurisdiction where Lucid Algorithms is established, without regard to its conflict of law principles.</p>
+            <p><strong>17.2</strong> The United Nations Convention on Contracts for the International Sale of Goods does not apply to these Terms.</p>
+            <p><strong>17.3</strong> You agree that any legal action or proceeding arising out of or relating to these Terms that is not subject to arbitration shall be filed only in the competent courts of the governing jurisdiction, and you hereby consent to the personal jurisdiction of such courts.</p>
+        </div>
+
+        <!-- SECTION 18 -->
+        <div id="section18" class="section">
+            <h2>18. Amendments to Terms</h2>
+            <p><strong>18.1</strong> We reserve the right to modify, update, or change these Terms at any time, effective upon posting the revised Terms on the Platform.</p>
+            <p><strong>18.2</strong> We will notify you of material changes by email or by posting a notice on the Platform prior to the effective date of the changes.</p>
+            <p><strong>18.3</strong> Your continued use of the Platform after the effective date of any changes constitutes your acceptance of the revised Terms.</p>
+            <p><strong>18.4</strong> If you do not agree to the revised Terms, you must stop using the Platform and close your Account.</p>
+        </div>
+
+        <!-- SECTION 19 -->
+        <div id="section19" class="section">
+            <h2>19. Miscellaneous Provisions</h2>
+            <p><strong>19.1 Entire Agreement:</strong> These Terms constitute the entire agreement between you and Lucid Algorithms regarding your use of the Platform.</p>
+            <p><strong>19.2 Severability:</strong> If any provision of these Terms is found to be invalid or unenforceable, the remaining provisions will remain in full force and effect.</p>
+            <p><strong>19.3 Waiver:</strong> Our failure to enforce any right or provision of these Terms shall not constitute a waiver of such right or provision.</p>
+            <p><strong>19.4 Assignment:</strong> You may not assign these Terms without our prior written consent. We may assign these Terms without restriction.</p>
+            <p><strong>19.5 No Third-Party Beneficiaries:</strong> These Terms are for the benefit of the parties only and no third party shall have any right to enforce any term.</p>
+            <p><strong>19.6 Survival:</strong> Sections regarding risk disclosure, limitation of liability, indemnification, and dispute resolution shall survive termination of these Terms.</p>
+        </div>
+
+        <!-- SECTION 20 -->
+        <div id="section20" class="section">
+            <h2>20. Contact Information</h2>
+            <p>If you have any questions about these Terms, please contact us:</p>
+            <ul>
+                <li><strong>Email:</strong> support@lucidalgorithms.com</li>
+                <li><strong>Website:</strong> https://lucidalgorithms.onrender.com</li>
+                <li><strong>Support Hours:</strong> Monday - Friday, 9:00 AM - 6:00 PM (UTC)</li>
+            </ul>
+            <p>For urgent matters, please use the support ticket system within your Account dashboard.</p>
+        </div>
+
+        <!-- SECTION 21 -->
+        <div id="section21" class="section">
+            <h2>21. Force Majeure</h2>
+            <p>We shall not be liable for any delay or failure to perform resulting from causes outside our reasonable control, including but not limited to acts of God, war, terrorism, riots, embargoes, acts of civil or military authorities, fire, floods, accidents, strikes, shortages of transportation facilities, fuel, energy, labor, or materials, pandemics, epidemics, or any event beyond our reasonable control.</p>
+        </div>
+
+        <!-- SECTION 22 -->
+        <div id="section22" class="section">
+            <h2>22. Severability</h2>
+            <p>If any provision of these Terms is held to be invalid, illegal, or unenforceable for any reason, such provision shall be eliminated or limited to the minimum extent necessary, and the remaining provisions of these Terms will continue in full force and effect.</p>
+        </div>
+
+        <!-- SECTION 23 -->
+        <div id="section23" class="section">
+            <h2>23. Entire Agreement</h2>
+            <p>These Terms, together with the Privacy Policy and any other legal notices published by us on the Platform, constitute the entire agreement between you and Lucid Algorithms concerning your use of the Platform and supersede any prior or contemporaneous agreements, representations, warranties, or understandings.</p>
+        </div>
+
+        <!-- SECTION 24 -->
+        <div id="section24" class="section">
+            <h2>24. Waiver</h2>
+            <p>Our failure to enforce any right or provision of these Terms shall not be deemed a waiver of such right or provision. Any waiver of any provision of these Terms will be effective only if in writing and signed by an authorized representative of Lucid Algorithms.</p>
+        </div>
+
+        <!-- SECTION 25 -->
+        <div id="section25" class="section">
+            <h2>25. Assignment</h2>
+            <p>You may not assign or transfer these Terms or any of your rights or obligations under these Terms without our prior written consent. We may assign or transfer these Terms, in whole or in part, without your consent in connection with a merger, acquisition, reorganization, or sale of all or substantially all of our assets.</p>
+        </div>
+
+        <div class="signature-area">
+            <i class="fas fa-file-signature" style="font-size: 48px; color: #888; margin-bottom: 15px; display: block;"></i>
+            <p><strong>By creating an Account and using the Lucid Algorithms Platform, you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions.</strong></p>
+            <p style="margin-top: 15px; font-size: 12px; color: #888;">Last Updated: November 15, 2024 | Version 4.0</p>
+            <p style="margin-top: 10px; font-size: 11px; color: #666;">© 2024 Lucid Algorithms. All rights reserved.</p>
+        </div>
+
+        <a href="register.html" class="back-link"><i class="fas fa-arrow-left"></i> Back to Registration</a>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Admin Dashboard | Lucid Algorithms</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        body {
+            background: #0a0a0a;
+            color: #e0e0e0;
+            overflow-x: hidden;
+        }
+
+        .admin-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 260px;
+            background: linear-gradient(180deg, #111 0%, #0a0a0a 100%);
+            border-right: 1px solid #333;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { width: 70px; }
+            .sidebar .logo-text, .sidebar .admin-badge, .sidebar .nav-item span { display: none; }
+            .sidebar .nav-item { justify-content: center; }
+            .main-content { margin-left: 70px; }
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid #333;
+            margin-bottom: 20px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, #888, #555);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .logo-text {
+            font-size: 18px;
+            font-weight: 700;
+            color: #ccc;
+        }
+
+        .admin-badge {
+            font-size: 10px;
+            color: #888;
+            margin-top: 3px;
+        }
+
+        .nav-menu {
+            padding: 0 12px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            margin: 4px 0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: 0.3s;
+            color: #888;
+            font-size: 13px;
+        }
+
+        .nav-item:hover {
+            background: rgba(136,136,136,0.1);
+            color: #aaa;
+        }
+
+        .nav-item.active {
+            background: rgba(136,136,136,0.2);
+            color: #ccc;
+            border-left: 2px solid #888;
+        }
+
+        .nav-item i {
+            width: 22px;
+            font-size: 16px;
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: 260px;
+            padding: 20px 25px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content { padding: 15px; }
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #333;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #ccc;
+        }
+
+        .admin-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .admin-avatar {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, #888, #555);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .logout-btn {
+            background: rgba(191,111,111,0.2);
+            border: 1px solid #bf6f6f;
+            padding: 6px 16px;
+            border-radius: 20px;
+            color: #bf6f6f;
+            cursor: pointer;
+            transition: 0.3s;
+            font-size: 12px;
+        }
+
+        .logout-btn:hover {
+            background: #bf6f6f;
+            color: white;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: #111;
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid #333;
+            transition: 0.3s;
+        }
+
+        .stat-card:hover {
+            border-color: #888;
+        }
+
+        .stat-icon {
+            width: 45px;
+            height: 45px;
+            background: rgba(136,136,136,0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: #aaa;
+            margin-bottom: 12px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 4px;
+            color: #ccc;
+        }
+
+        .stat-label {
+            color: #888;
+            font-size: 12px;
+        }
+
+        .charts-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 25px;
+        }
+
+        @media (max-width: 768px) {
+            .charts-row { grid-template-columns: 1fr; }
+        }
+
+        .chart-card {
+            background: #111;
+            border-radius: 16px;
+            padding: 16px;
+            border: 1px solid #333;
+        }
+
+        .chart-card h3 {
+            margin-bottom: 15px;
+            font-size: 15px;
+            color: #aaa;
+        }
+
+        .users-section, .withdrawals-section, .transactions-section {
+            background: #111;
+            border-radius: 16px;
+            border: 1px solid #333;
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .section-header h3 {
+            font-size: 16px;
+            color: #aaa;
+        }
+
+        .search-filter {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .search-box, .filter-select {
+            padding: 8px 14px;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 20px;
+            color: white;
+            font-size: 12px;
+        }
+
+        .users-table {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #2a2a2a;
+        }
+
+        th {
+            color: #aaa;
+            font-weight: 600;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+
+        tr:hover {
+            background: rgba(136,136,136,0.05);
+        }
+
+        .user-status {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: rgba(111,191,111,0.2);
+            color: #6fbf6f;
+        }
+
+        .status-inactive {
+            background: rgba(191,111,111,0.2);
+            color: #bf6f6f;
+        }
+
+        .status-pending {
+            background: rgba(191,191,111,0.2);
+            color: #bfbf6f;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            padding: 5px 10px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 10px;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+
+        .action-btn.approve { background: #6fbf6f; color: #0a0a0a; }
+        .action-btn.reject { background: #bf6f6f; color: white; }
+        .action-btn.add { background: #6fbf6f; color: #0a0a0a; }
+        .action-btn.deduct { background: #bfbf6f; color: #0a0a0a; }
+        .action-btn.toggle { background: #6f6fbf; color: white; }
+        .action-btn.view { background: #888; color: white; }
+        .action-btn.passkey { background: #9b6fbf; color: white; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.95);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1a1a1a;
+            border-radius: 20px;
+            padding: 25px;
+            width: 480px;
+            max-width: 90%;
+            border: 1px solid #888;
+        }
+
+        .modal-content h3 {
+            margin-bottom: 10px;
+            font-size: 20px;
+            color: #ccc;
+        }
+
+        .modal-content input, .modal-content select, .modal-content textarea {
+            width: 100%;
+            padding: 10px 12px;
+            margin: 10px 0;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 8px;
+            color: white;
+            font-size: 13px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .modal-buttons button:first-child { background: #888; color: #0a0a0a; }
+        .modal-buttons button:last-child { background: #333; color: white; }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #888;
+            color: #0a0a0a;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            z-index: 2000;
+            animation: slideIn 0.3s ease;
+            font-size: 12px;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .passkey-display {
+            font-family: monospace;
+            font-size: 16px;
+            letter-spacing: 2px;
+            background: #2a2a2a;
+            padding: 8px;
+            border-radius: 6px;
+            text-align: center;
+            margin: 10px 0;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon"><i class="fas fa-chart-line"></i></div>
+                    <div>
+                        <div class="logo-text">LUCID ALGORITHMS</div>
+                        <div class="admin-badge"><i class="fas fa-crown"></i> Admin Panel</div>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-menu">
+                <div class="nav-item active" data-section="dashboard"><i class="fas fa-tachometer-alt"></i> <span>Dashboard</span></div>
+                <div class="nav-item" data-section="users"><i class="fas fa-users"></i> <span>Users Management</span></div>
+                <div class="nav-item" data-section="withdrawals"><i class="fas fa-money-bill-wave"></i> <span>Withdrawals</span></div>
+                <div class="nav-item" data-section="transactions"><i class="fas fa-history"></i> <span>Transactions</span></div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="top-bar">
+                <h1 class="page-title" id="pageTitle">Dashboard Overview</h1>
+                <div class="admin-info">
+                    <div class="admin-avatar"><i class="fas fa-user-shield"></i></div>
+                    <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                </div>
+            </div>
+
+            <div id="dashboardSection">
+                <div class="stats-grid">
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-users"></i></div><div class="stat-value" id="totalUsers">0</div><div class="stat-label">Total Registered Users</div></div>
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-user-check"></i></div><div class="stat-value" id="activeUsers">0</div><div class="stat-label">Active Users</div></div>
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-dollar-sign"></i></div><div class="stat-value" id="totalBalance">$0</div><div class="stat-label">Total Platform Balance</div></div>
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-chart-line"></i></div><div class="stat-value" id="totalProfit">$0</div><div class="stat-label">Total User Profit</div></div>
+                </div>
+                <div class="charts-row">
+                    <div class="chart-card"><h3><i class="fas fa-chart-line"></i> User Growth</h3><canvas id="userGrowthChart"></canvas></div>
+                    <div class="chart-card"><h3><i class="fas fa-chart-pie"></i> Experience Distribution</h3><canvas id="experienceChart"></canvas></div>
+                </div>
+            </div>
+
+            <div id="usersSection" style="display: none;">
+                <div class="users-section">
+                    <div class="section-header">
+                        <h3><i class="fas fa-users"></i> Registered Users</h3>
+                        <div class="search-filter">
+                            <input type="text" class="search-box" id="searchUsers" placeholder="Search by name or email...">
+                            <select class="filter-select" id="filterStatus">
+                                <option value="all">All Users</option>
+                                <option value="active">Active Only</option>
+                                <option value="inactive">Inactive Only</option>
+                            </select>
+                            <button class="action-btn add" onclick="refreshUsers()" style="padding: 8px 15px;"><i class="fas fa-sync-alt"></i> Refresh</button>
+                        </div>
+                    </div>
+                    <div class="users-table">
+                        <table>
+                            <thead><tr><th>User</th><th>Contact</th><th>Balance</th><th>Demo</th><th>Experience</th><th>Status</th><th>Actions</th></tr></thead>
+                            <tbody id="usersList"><tr><td colspan="7"><div class="loading">Loading users...</div></td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="withdrawalsSection" style="display: none;">
+                <div class="users-section">
+                    <div class="section-header">
+                        <h3><i class="fas fa-money-bill-wave"></i> Withdrawal Requests</h3>
+                        <button class="action-btn add" onclick="refreshWithdrawals()" style="padding: 8px 15px;"><i class="fas fa-sync-alt"></i> Refresh</button>
+                    </div>
+                    <div class="users-table">
+                        <table>
+                            <thead><tr><th>User</th><th>Amount</th><th>Fee</th><th>Network</th><th>Address</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+                            <tbody id="withdrawalsList"><tr><td colspan="8"><div class="loading">Loading withdrawals...</div></td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="transactionsSection" style="display: none;">
+                <div class="users-section">
+                    <div class="section-header">
+                        <h3><i class="fas fa-history"></i> Recent Transactions</h3>
+                        <button class="action-btn add" onclick="refreshTransactions()" style="padding: 8px 15px;"><i class="fas fa-sync-alt"></i> Refresh</button>
+                    </div>
+                    <div class="users-table">
+                        <table>
+                            <thead><tr><th>ID</th><th>User</th><th>Type</th><th>Amount</th><th>Fee</th><th>Admin</th><th>Date</th></tr></thead>
+                            <tbody id="transactionsList"><tr><td colspan="7"><div class="loading">Loading transactions...</div></td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="balanceModal" class="modal"><div class="modal-content"><span onclick="closeModal('balanceModal')" style="float:right; font-size:24px; cursor:pointer;">&times;</span>
+        <h3><i class="fas fa-dollar-sign"></i> Add / Deduct Balance</h3>
+        <input type="text" id="modalUserId" readonly style="background:#333;"><input type="text" id="modalUserName" readonly style="background:#333;">
+        <input type="number" id="balanceAmount" placeholder="Amount (USD)" step="10">
+        <select id="balanceType"><option value="add">✅ Add Funds</option><option value="deduct">➖ Deduct Funds</option></select>
+        <textarea id="balanceDesc" placeholder="Description" rows="2"></textarea>
+        <div class="modal-buttons"><button onclick="processBalance()">Process</button><button onclick="closeModal('balanceModal')">Cancel</button></div>
+    </div></div>
+
+    <div id="userModal" class="modal"><div class="modal-content" style="width:600px;"><span onclick="closeModal('userModal')" style="float:right; font-size:24px; cursor:pointer;">&times;</span><h3>User Details</h3><div id="userDetails"></div></div></div>
+
+    <div id="passkeyModal" class="modal"><div class="modal-content"><span onclick="closeModal('passkeyModal')" style="float:right; font-size:24px; cursor:pointer;">&times;</span><h3><i class="fas fa-key"></i> AI Passkey Management</h3><div id="passkeyModalContent"></div><div class="modal-buttons"><button onclick="generatePasskey()">Generate Passkey</button><button onclick="deletePasskey()">Delete Passkey</button><button onclick="closeModal('passkeyModal')">Close</button></div></div></div>
+
+    <script>
+        const API_URL = 'https://lucidalgorithms.onrender.com';
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        
+        if (!token || !user.isAdmin) window.location.href = 'index.html';
+
+        let currentUsers = [], currentPasskeyUserId = null, userGrowthChart, experienceChart;
+
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                item.classList.add('active');
+                const section = item.dataset.section;
+                document.getElementById('dashboardSection').style.display = section === 'dashboard' ? 'block' : 'none';
+                document.getElementById('usersSection').style.display = section === 'users' ? 'block' : 'none';
+                document.getElementById('withdrawalsSection').style.display = section === 'withdrawals' ? 'block' : 'none';
+                document.getElementById('transactionsSection').style.display = section === 'transactions' ? 'block' : 'none';
+                const titles = { dashboard: 'Dashboard Overview', users: 'Users Management', withdrawals: 'Withdrawal Requests', transactions: 'Transaction History' };
+                document.getElementById('pageTitle').innerText = titles[section];
+                if (section === 'users') loadUsers();
+                if (section === 'withdrawals') loadWithdrawals();
+                if (section === 'transactions') loadTransactions();
+            });
+        });
+
+        async function loadDashboardStats() {
+            try {
+                const response = await fetch(`${API_URL}/api/admin/stats`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const stats = await response.json();
+                document.getElementById('totalUsers').innerText = stats.totalUsers || 0;
+                document.getElementById('activeUsers').innerText = stats.activeUsers || 0;
+                document.getElementById('totalBalance').innerHTML = `$${(stats.totalBalance || 0).toLocaleString()}`;
+                document.getElementById('totalProfit').innerHTML = `$${(stats.totalProfit || 0).toLocaleString()}`;
+                const usersResponse = await fetch(`${API_URL}/api/admin/users`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const users = await usersResponse.json();
+                currentUsers = users;
+                initCharts(users);
+            } catch (error) { console.error('Error loading stats:', error); }
+        }
+
+        function initCharts(users) {
+            const experienceCount = { Beginner: 0, Intermediate: 0, Expert: 0 };
+            users.forEach(u => { if (experienceCount[u.tradingExperience] !== undefined) experienceCount[u.tradingExperience]++; });
+            if (experienceChart) experienceChart.destroy();
+            const expCtx = document.getElementById('experienceChart').getContext('2d');
+            experienceChart = new Chart(expCtx, { type: 'pie', data: { labels: Object.keys(experienceCount), datasets: [{ data: Object.values(experienceCount), backgroundColor: ['#888', '#aaa', '#ccc'] }] }, options: { responsive: true, plugins: { legend: { labels: { color: '#e0e0e0' } } } } });
+            
+            const last30Days = Array(30).fill(0);
+            users.forEach(u => { const daysAgo = Math.floor((Date.now() - new Date(u.createdAt)) / (1000 * 60 * 60 * 24)); if (daysAgo >= 0 && daysAgo < 30) last30Days[29 - daysAgo]++; });
+            if (userGrowthChart) userGrowthChart.destroy();
+            const growthCtx = document.getElementById('userGrowthChart').getContext('2d');
+            userGrowthChart = new Chart(growthCtx, { type: 'line', data: { labels: Array(30).fill().map((_, i) => `Day ${i+1}`), datasets: [{ label: 'New Users', data: last30Days, borderColor: '#aaa', fill: true, backgroundColor: 'rgba(136,136,136,0.1)' }] }, options: { responsive: true, plugins: { legend: { labels: { color: '#e0e0e0' } } } } });
+        }
+
+        async function loadUsers() {
+            try {
+                const response = await fetch(`${API_URL}/api/admin/users`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const users = await response.json();
+                currentUsers = users;
+                renderUsersTable(users);
+            } catch (error) { document.getElementById('usersList').innerHTML = '<tr><td colspan="7">Error loading users</td></tr>'; }
+        }
+
+        function renderUsersTable(users) {
+            const searchTerm = document.getElementById('searchUsers')?.value.toLowerCase() || '';
+            const statusFilter = document.getElementById('filterStatus')?.value || 'all';
+            let filtered = users.filter(u => (u.fullName.toLowerCase().includes(searchTerm) || u.email.toLowerCase().includes(searchTerm)) && (statusFilter === 'all' || (statusFilter === 'active' && u.isActive) || (statusFilter === 'inactive' && !u.isActive)));
+            const tbody = document.getElementById('usersList');
+            if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:30px;">No users found</td></tr>'; return; }
+            tbody.innerHTML = filtered.map(user => `<tr><td><strong>${user.fullName}</strong><br><small style="color:#888">${user.email}</small></td><td>${user.country}<br><small>${user.countryCode} ${user.phoneNumber}</small></td><td><strong style="color:#aaa">$${user.balance?.toLocaleString() || '0'}</strong></td><td>$${(user.demoBalance || 10000).toLocaleString()}</td><td>${user.tradingExperience || 'N/A'}</td><td><span class="user-status ${user.isActive ? 'status-active' : 'status-inactive'}">${user.isActive ? 'Active' : 'Inactive'}</span></td><td class="action-buttons"><button class="action-btn add" onclick="openBalanceModal('${user._id}', '${user.fullName}', 'add')"><i class="fas fa-plus"></i> Add</button><button class="action-btn deduct" onclick="openBalanceModal('${user._id}', '${user.fullName}', 'deduct')"><i class="fas fa-minus"></i> Deduct</button><button class="action-btn passkey" onclick="openPasskeyModal('${user._id}', '${user.fullName}')"><i class="fas fa-key"></i> Passkey</button><button class="action-btn toggle" onclick="toggleUserStatus('${user._id}', ${!user.isActive})"><i class="fas fa-power-off"></i> ${user.isActive ? 'Disable' : 'Enable'}</button><button class="action-btn view" onclick="viewUserDetails('${user._id}')"><i class="fas fa-eye"></i> View</button></td></tr>`).join('');
+        }
+
+        async function loadWithdrawals() {
+            try {
+                const response = await fetch(`${API_URL}/api/admin/withdrawals`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const withdrawals = await response.json();
+                const tbody = document.getElementById('withdrawalsList');
+                if (withdrawals.length === 0) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px;">No withdrawal requests</td></tr>'; return; }
+                tbody.innerHTML = withdrawals.map(w => `<tr><td>${w.userName}</td><td><strong>$${w.amount.toLocaleString()}</strong></td><td>$${(w.feeAmount || 0).toFixed(2)}</td><td>${w.network}</td><td><small>${w.walletAddress.substring(0, 15)}...</small></td><td><span class="user-status ${w.status === 'pending' ? 'status-pending' : w.status === 'approved' ? 'status-active' : 'status-inactive'}">${w.status}</span></td><td><small>${new Date(w.createdAt).toLocaleString()}</small></td><td class="action-buttons">${w.status === 'pending' ? `<button class="action-btn approve" onclick="processWithdrawal('${w._id}', 'approved')"><i class="fas fa-check"></i> Approve</button><button class="action-btn reject" onclick="processWithdrawal('${w._id}', 'rejected')"><i class="fas fa-times"></i> Reject</button>` : '-'}</td></tr>`).join('');
+            } catch (error) { document.getElementById('withdrawalsList').innerHTML = '<tr><td colspan="8">Error loading withdrawals</td></tr>'; }
+        }
+
+        async function processWithdrawal(withdrawalId, status) {
+            if (!confirm(`Are you sure you want to ${status} this withdrawal request?`)) return;
+            try {
+                const response = await fetch(`${API_URL}/api/admin/withdrawals/${withdrawalId}/process`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ status }) });
+                const data = await response.json();
+                if (data.success) { showToast(`Withdrawal ${status}!`); loadWithdrawals(); loadDashboardStats(); }
+            } catch (error) { showToast('Error processing withdrawal', 'error'); }
+        }
+
+        async function loadTransactions() {
+            try {
+                const response = await fetch(`${API_URL}/api/admin/transactions`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const transactions = await response.json();
+                const tbody = document.getElementById('transactionsList');
+                if (transactions.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:30px;">No transactions found</td></tr>'; return; }
+                tbody.innerHTML = transactions.map(t => `<tr><td><small>${t.transactionId}</small></td><td>${t.userName}</td><td><span style="color: ${t.type === 'admin_deposit' ? '#6fbf6f' : t.type === 'admin_deduct' ? '#bfbf6f' : '#aaa'}">${t.type.replace('_', ' ').toUpperCase()}</span></td><td><strong>$${t.amount.toLocaleString()}</strong></td><td>${t.withdrawalFee ? `$${t.withdrawalFee.toFixed(2)}` : '-'}</td><td><small>${t.adminName || 'System'}</small></td><td><small>${new Date(t.createdAt).toLocaleString()}</small></td>`).join('');
+            } catch (error) { document.getElementById('transactionsList').innerHTML = '<tr><td colspan="7">Error loading transactions</td></tr>'; }
+        }
+
+        function refreshUsers() { loadUsers(); showToast('Users refreshed'); }
+        function refreshWithdrawals() { loadWithdrawals(); showToast('Withdrawals refreshed'); }
+        function refreshTransactions() { loadTransactions(); showToast('Transactions refreshed'); }
+
+        let currentModalUserId = null;
+        function openBalanceModal(userId, userName, type) {
+            currentModalUserId = userId;
+            document.getElementById('modalUserId').value = userId;
+            document.getElementById('modalUserName').value = userName;
+            document.getElementById('balanceAmount').value = '';
+            document.getElementById('balanceType').value = type;
+            document.getElementById('balanceDesc').value = type === 'add' ? 'Deposit confirmed' : 'Admin deduction';
+            document.getElementById('balanceModal').classList.add('active');
+        }
+
+        async function processBalance() {
+            const amount = parseFloat(document.getElementById('balanceAmount').value);
+            const type = document.getElementById('balanceType').value;
+            const description = document.getElementById('balanceDesc').value;
+            if (!amount || amount <= 0) { showToast('Please enter a valid amount', 'error'); return; }
+            const endpoint = type === 'add' ? '/api/admin/add-balance' : '/api/admin/deduct-balance';
+            try {
+                const response = await fetch(`${API_URL}${endpoint}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ userId: currentModalUserId, amount, description }) });
+                const data = await response.json();
+                if (data.success) { showToast(data.message); closeModal('balanceModal'); loadUsers(); loadDashboardStats(); loadTransactions(); }
+                else { showToast(data.error || 'Transaction failed', 'error'); }
+            } catch (error) { showToast('Error processing transaction', 'error'); }
+        }
+
+        async function toggleUserStatus(userId, newStatus) {
+            try {
+                const response = await fetch(`${API_URL}/api/admin/users/${userId}/toggle-status`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await response.json();
+                if (data.success) { showToast(data.message); loadUsers(); loadDashboardStats(); }
+            } catch (error) { showToast('Error updating user status', 'error'); }
+        }
+
+        function openPasskeyModal(userId, userName) {
+            currentPasskeyUserId = userId;
+            document.getElementById('passkeyModalContent').innerHTML = `<p>User: <strong>${userName}</strong></p><div id="currentPasskeyDisplay">Loading...</div>`;
+            document.getElementById('passkeyModal').classList.add('active');
+            loadCurrentPasskey(userId);
+        }
+
+        async function loadCurrentPasskey(userId) {
+            try {
+                const response = await fetch(`${API_URL}/api/admin/users/${userId}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await response.json();
+                const passkey = data.user.aiApiKey;
+                document.getElementById('currentPasskeyDisplay').innerHTML = passkey && passkey !== '' ? `<div class="passkey-display"><i class="fas fa-key"></i> ${passkey}</div>` : '<p style="color:#bfbf6f;">No passkey set</p>';
+            } catch (error) { document.getElementById('currentPasskeyDisplay').innerHTML = '<p style="color:#bf6f6f;">Error loading passkey</p>'; }
+        }
+
+        async function generatePasskey() {
+            if (!currentPasskeyUserId) return;
+            try {
+                const response = await fetch(`${API_URL}/api/admin/generate-passkey/${currentPasskeyUserId}`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await response.json();
+                if (data.success) { showToast(`Passkey generated: ${data.passkey}`); loadCurrentPasskey(currentPasskeyUserId); loadUsers(); }
+                else { showToast(data.error, 'error'); }
+            } catch (error) { showToast('Error generating passkey', 'error'); }
+        }
+
+        async function deletePasskey() {
+            if (!currentPasskeyUserId) return;
+            if (!confirm('Delete this user\'s passkey?')) return;
+            try {
+                const response = await fetch(`${API_URL}/api/admin/delete-passkey/${currentPasskeyUserId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await response.json();
+                if (data.success) { showToast('Passkey deleted'); loadCurrentPasskey(currentPasskeyUserId); loadUsers(); }
+                else { showToast(data.error, 'error'); }
+            } catch (error) { showToast('Error deleting passkey', 'error'); }
+        }
+
+        async function viewUserDetails(userId) {
+            try {
+                const response = await fetch(`${API_URL}/api/admin/users/${userId}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await response.json();
+                const user = data.user;
+                const transactions = data.transactions || [];
+                document.getElementById('userDetails').innerHTML = `<div style="margin-bottom:15px;"><p><strong>Full Name:</strong> ${user.fullName}</p><p><strong>Email:</strong> ${user.email}</p><p><strong>Age:</strong> ${user.age}</p><p><strong>Country:</strong> ${user.country}</p><p><strong>Phone:</strong> ${user.countryCode} ${user.phoneNumber}</p><p><strong>Employment:</strong> ${user.employmentStatus}</p><p><strong>Trading Experience:</strong> ${user.tradingExperience}</p><p><strong>Funds Source:</strong> ${user.fundsSource}</p><p><strong>Real Balance:</strong> <span style="color:#aaa; font-size:18px;">$${user.balance.toLocaleString()}</span></p><p><strong>Demo Balance:</strong> <span style="color:#aaa;">$${(user.demoBalance || 10000).toLocaleString()}</span></p><p><strong>Total Deposits:</strong> $${(user.totalDeposits || 0).toLocaleString()}</p><p><strong>Total Profit:</strong> $${(user.totalProfit || 0).toLocaleString()}</p><p><strong>AI Passkey:</strong> <span style="font-family:monospace;">${user.aiApiKey || 'Not set'}</span></p><p><strong>Joined:</strong> ${new Date(user.createdAt).toLocaleString()}</p></div><h4>Recent Transactions</h4><div style="max-height:250px; overflow-y:auto;"><table style="font-size:11px;"><thead><tr><th>Date</th><th>Type</th><th>Amount</th></tr></thead><tbody>${transactions.map(t => `<tr><td>${new Date(t.createdAt).toLocaleDateString()}</td><td>${t.type}</td><td>$${t.amount.toLocaleString()}</td></tr>`).join('')}${transactions.length === 0 ? '<tr><td colspan="3">No transactions</td></tr>' : ''}</tbody></table></div>`;
+                document.getElementById('userModal').classList.add('active');
+            } catch (error) { showToast('Error loading user details', 'error'); }
+        }
+
+        function closeModal(modalId) { document.getElementById(modalId).classList.remove('active'); }
+        function showToast(message, type = 'success') { const toast = document.createElement('div'); toast.className = 'toast'; toast.style.background = type === 'success' ? '#888' : '#bf6f6f'; toast.style.color = '#0a0a0a'; toast.innerHTML = message; document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000); }
+        function logout() { localStorage.clear(); window.location.href = 'index.html'; }
+
+        document.getElementById('searchUsers')?.addEventListener('input', () => renderUsersTable(currentUsers));
+        document.getElementById('filterStatus')?.addEventListener('change', () => renderUsersTable(currentUsers));
+
+        setInterval(() => {
+            if (document.getElementById('dashboardSection').style.display !== 'none') loadDashboardStats();
+            if (document.getElementById('usersSection').style.display !== 'none') loadUsers();
+            if (document.getElementById('withdrawalsSection').style.display !== 'none') loadWithdrawals();
+            if (document.getElementById('transactionsSection').style.display !== 'none') loadTransactions();
+        }, 30000);
+
+        loadDashboardStats(); loadUsers(); loadWithdrawals(); loadTransactions();
+    </script>
+</body>
+</html>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>My Profile | Lucid Algorithms</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        body { background: #0a0a0a; color: #e0e0e0; min-height: 100vh; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 70px 16px 40px; }
+        .profile-header { background: linear-gradient(135deg, #111, #1a1a1a); border-radius: 20px; padding: 24px; margin-bottom: 24px; border: 1px solid #333; }
+        .profile-avatar { width: 70px; height: 70px; background: linear-gradient(135deg, #888, #555); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin-bottom: 16px; }
+        .profile-name { font-size: 24px; font-weight: 700; margin-bottom: 4px; color: #ccc; }
+        .profile-email { color: #888; margin-bottom: 16px; font-size: 13px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: #111; border-radius: 14px; padding: 16px; border: 1px solid #333; text-align: center; }
+        .stat-card .value { font-size: 24px; font-weight: 800; color: #aaa; }
+        .stat-card .label { font-size: 11px; color: #888; margin-top: 4px; }
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .info-card { background: #111; border-radius: 14px; padding: 16px; border: 1px solid #333; }
+        .info-card h3 { margin-bottom: 12px; color: #aaa; font-size: 16px; }
+        .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #2a2a2a; font-size: 12px; }
+        .info-row:last-child { border-bottom: none; }
+        .info-label { color: #888; }
+        .info-value { font-weight: 600; color: #ccc; }
+        .chart-card { background: #111; border-radius: 14px; padding: 16px; border: 1px solid #333; margin-bottom: 24px; }
+        .chart-card h3 { margin-bottom: 12px; color: #aaa; font-size: 16px; }
+        canvas { max-height: 280px; width: 100%; }
+        .trades-table { background: #111; border-radius: 14px; border: 1px solid #333; overflow-x: auto; }
+        .trades-table h3 { padding: 16px; border-bottom: 1px solid #333; color: #aaa; font-size: 16px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #2a2a2a; }
+        th { color: #aaa; font-size: 11px; }
+        .profit-positive { color: #6fbf6f; }
+        .profit-negative { color: #bf6f6f; }
+        .back-btn { display: inline-block; margin-bottom: 16px; padding: 8px 16px; background: #2a2a2a; border: none; border-radius: 8px; color: #ccc; cursor: pointer; text-decoration: none; font-size: 12px; }
+        .back-btn:hover { background: #3a3a3a; }
+        @media (max-width: 768px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } .info-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a href="dashboard.html" class="back-btn"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+    
+    <div class="profile-header">
+        <div class="profile-avatar"><i class="fas fa-user"></i></div>
+        <div class="profile-name" id="profileName">Loading...</div>
+        <div class="profile-email" id="profileEmail">Loading...</div>
+        <div style="font-size: 12px; color: #888;">Member since: <span id="joinDate">Loading...</span></div>
+    </div>
+    
+    <div class="stats-grid">
+        <div class="stat-card"><div class="value" id="totalProfit">$0</div><div class="label">Total Profit</div></div>
+        <div class="stat-card"><div class="value" id="totalLoss">$0</div><div class="label">Total Loss</div></div>
+        <div class="stat-card"><div class="value" id="winRate">0%</div><div class="label">Win Rate</div></div>
+        <div class="stat-card"><div class="value" id="roi">0%</div><div class="label">ROI</div></div>
+        <div class="stat-card"><div class="value" id="totalTrades">0</div><div class="label">Total Trades</div></div>
+        <div class="stat-card"><div class="value" id="currentBalance">$0</div><div class="label">Real Balance</div></div>
+        <div class="stat-card"><div class="value" id="demoBalance">$0</div><div class="label">Demo Balance</div></div>
+    </div>
+    
+    <div class="info-grid">
+        <div class="info-card"><h3><i class="fas fa-user-circle"></i> Personal Information</h3>
+            <div class="info-row"><span class="info-label">Full Name</span><span class="info-value" id="fullName">-</span></div>
+            <div class="info-row"><span class="info-label">Email</span><span class="info-value" id="email">-</span></div>
+            <div class="info-row"><span class="info-label">Age</span><span class="info-value" id="age">-</span></div>
+            <div class="info-row"><span class="info-label">Employment</span><span class="info-value" id="employmentStatus">-</span></div>
+        </div>
+        <div class="info-card"><h3><i class="fas fa-map-marker-alt"></i> Location & Contact</h3>
+            <div class="info-row"><span class="info-label">Country</span><span class="info-value" id="country">-</span></div>
+            <div class="info-row"><span class="info-label">Phone</span><span class="info-value" id="phone">-</span></div>
+        </div>
+        <div class="info-card"><h3><i class="fas fa-chart-line"></i> Trading Information</h3>
+            <div class="info-row"><span class="info-label">Experience</span><span class="info-value" id="tradingExperience">-</span></div>
+            <div class="info-row"><span class="info-label">Funds Source</span><span class="info-value" id="fundsSource">-</span></div>
+            <div class="info-row"><span class="info-label">Total Deposits</span><span class="info-value" id="totalDeposits">-</span></div>
+        </div>
+    </div>
+    
+    <div class="chart-card"><h3><i class="fas fa-chart-line"></i> Profit/Loss Over Time</h3><canvas id="profitLossChart"></canvas></div>
+    
+    <div class="trades-table"><h3><i class="fas fa-history"></i> Recent Trades</h3>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead><tr><th>Asset</th><th>Side</th><th>Amount</th><th>Duration</th><th>Profit/Loss</th><th>Type</th><th>Date</th></tr></thead>
+                <tbody id="tradesList"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_URL = 'https://lucidalgorithms.onrender.com';
+    
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = 'index.html';
+    
+    let profitLossChart;
+    
+    async function loadProfile() {
+        try {
+            const response = await fetch(`${API_URL}/api/user/profile`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const data = await response.json();
+            const user = data.user;
+            const trades = data.tradeHistory || [];
+            
+            document.getElementById('profileName').innerText = user.fullName;
+            document.getElementById('profileEmail').innerText = user.email;
+            document.getElementById('joinDate').innerText = new Date(user.createdAt).toLocaleDateString();
+            document.getElementById('totalProfit').innerHTML = `$${user.totalProfit?.toFixed(2) || '0'}`;
+            document.getElementById('totalLoss').innerHTML = `$${user.totalLoss?.toFixed(2) || '0'}`;
+            document.getElementById('winRate').innerHTML = `${user.winRate?.toFixed(1) || '0'}%`;
+            document.getElementById('roi').innerHTML = `${data.roi || '0'}%`;
+            document.getElementById('totalTrades').innerHTML = user.totalTrades || '0';
+            document.getElementById('currentBalance').innerHTML = `$${user.balance?.toFixed(2) || '0'}`;
+            document.getElementById('demoBalance').innerHTML = `$${user.demoBalance?.toFixed(2) || '10000'}`;
+            
+            document.getElementById('fullName').innerHTML = user.fullName;
+            document.getElementById('email').innerHTML = user.email;
+            document.getElementById('age').innerHTML = user.age;
+            document.getElementById('employmentStatus').innerHTML = user.employmentStatus;
+            document.getElementById('country').innerHTML = user.country;
+            document.getElementById('phone').innerHTML = `${user.countryCode} ${user.phoneNumber}`;
+            document.getElementById('tradingExperience').innerHTML = user.tradingExperience;
+            document.getElementById('fundsSource').innerHTML = user.fundsSource;
+            document.getElementById('totalDeposits').innerHTML = `$${user.totalDeposits?.toFixed(2) || '0'}`;
+            
+            const tradesList = document.getElementById('tradesList');
+            if (trades && trades.length > 0) {
+                tradesList.innerHTML = trades.slice(0, 30).map(trade => `
+                    <tr>
+                        <td>${trade.symbolName || trade.symbol}</td>
+                        <td><span style="color: ${trade.side === 'buy' ? '#6fbf6f' : '#bf6f6f'}">${trade.side?.toUpperCase() || 'N/A'}</span></td>
+                        <td>$${trade.amount?.toFixed(2) || '0'}</td>
+                        <td>${trade.duration || 'N/A'}</td>
+                        <td class="${trade.profit >= 0 ? 'profit-positive' : 'profit-negative'}">${trade.profit >= 0 ? '+' : ''}$${trade.profit?.toFixed(2) || '0'}</td>
+                        <td>${trade.isDemo ? '<span class="badge-demo" style="background:#6f6fbf20; color:#6f6fbf; padding:2px 6px; border-radius:10px; font-size:9px;">DEMO</span>' : '<span style="color:#6fbf6f;">REAL</span>'}</td>
+                        <td>${new Date(trade.endedAt || trade.startedAt).toLocaleDateString()}</td>
+                    </tr>
+                `).join('');
+            } else {
+                tradesList.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:30px;">No trades yet</td></tr>';
+            }
+            
+            createCharts(trades);
+        } catch (error) { console.error('Error loading profile:', error); }
+    }
+    
+    function createCharts(trades) {
+        const dates = trades.map(t => new Date(t.endedAt || t.startedAt).toLocaleDateString()).reverse();
+        const profits = trades.map(t => t.profit || 0).reverse();
+        if (profitLossChart) profitLossChart.destroy();
+        const ctx1 = document.getElementById('profitLossChart').getContext('2d');
+        profitLossChart = new Chart(ctx1, { type: 'line', data: { labels: dates, datasets: [{ label: 'Profit/Loss ($)', data: profits, borderColor: '#aaa', backgroundColor: 'rgba(136,136,136,0.1)', fill: true, tension: 0.4 }] }, options: { responsive: true, plugins: { legend: { labels: { color: '#e0e0e0' } } } } });
+    }
+    
+    loadProfile();
+</script>
+</body>
+</html>
