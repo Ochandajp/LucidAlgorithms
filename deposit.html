@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Deposit Funds | Lucid Algorithms</title>
+    <title>Deposit Funds | Algon Flow</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
@@ -15,121 +15,72 @@
         }
 
         body {
-            background: #0a0a0a;
-            color: #e0e0e0;
+            background: #0a0e17;
+            color: #e0e3eb;
             min-height: 100vh;
         }
 
         .container {
-            max-width: 600px;
+            max-width: 550px;
             margin: 0 auto;
             padding: 80px 16px 40px;
         }
 
         .deposit-card {
-            background: #111;
+            background: #0f1322;
             border-radius: 24px;
-            border: 1px solid #333;
-            padding: 24px;
+            border: 1px solid rgba(45,212,191,0.3);
+            padding: 28px;
         }
 
         .deposit-card h1 {
             font-size: 28px;
             margin-bottom: 8px;
             text-align: center;
-            color: #ccc;
+            color: #2dd4bf;
         }
 
         .subtitle {
             text-align: center;
-            color: #888;
+            color: #8a92b0;
             margin-bottom: 25px;
             font-size: 13px;
-        }
-
-        /* Amount Input Section */
-        .amount-section {
-            background: #1a1a1a;
-            border-radius: 16px;
-            padding: 15px;
-            margin-bottom: 20px;
-            border: 1px solid #333;
-        }
-
-        .amount-section label {
-            display: block;
-            font-size: 12px;
-            color: #888;
-            margin-bottom: 8px;
-        }
-
-        .amount-input {
-            width: 100%;
-            padding: 14px;
-            background: #2a2a2a;
-            border: 1px solid #444;
-            border-radius: 12px;
-            color: white;
-            font-size: 18px;
-            font-weight: 600;
-            text-align: center;
-        }
-
-        .amount-input:focus {
-            outline: none;
-            border-color: #6fbf6f;
-        }
-
-        .email-display {
-            background: #1a1a1a;
-            border-radius: 12px;
-            padding: 12px;
-            margin-bottom: 15px;
-            text-align: center;
-            font-size: 13px;
-            color: #aaa;
-            border: 1px solid #333;
-        }
-
-        .email-display i {
-            margin-right: 8px;
-            color: #6fbf6f;
         }
 
         /* Network Tabs */
         .network-tabs {
             display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
+            gap: 12px;
             margin-bottom: 25px;
-            border-bottom: 1px solid #333;
+            border-bottom: 1px solid rgba(45,212,191,0.2);
             padding-bottom: 15px;
+            justify-content: center;
         }
 
         .tab-btn {
-            background: #2a2a2a;
+            background: #1a1f30;
             border: none;
-            padding: 10px 18px;
+            padding: 10px 24px;
             border-radius: 30px;
-            color: #888;
+            color: #8a92b0;
             cursor: pointer;
             font-weight: 600;
-            font-size: 13px;
+            font-size: 14px;
             transition: 0.2s;
         }
 
         .tab-btn i {
-            margin-right: 6px;
+            margin-right: 8px;
         }
 
         .tab-btn.active {
-            background: #555;
-            color: white;
+            background: linear-gradient(135deg, #2dd4bf, #00c6fb);
+            color: #0a0e17;
         }
 
         .tab-btn:hover {
-            background: #444;
-            color: #ccc;
+            background: rgba(45,212,191,0.2);
+            color: #2dd4bf;
         }
 
         /* Wallet Panel */
@@ -149,26 +100,25 @@
 
         .network-badge {
             display: inline-block;
-            background: rgba(100,100,100,0.2);
-            padding: 5px 12px;
+            background: rgba(45,212,191,0.15);
+            padding: 6px 14px;
             border-radius: 20px;
-            font-size: 11px;
-            color: #aaa;
-            margin-bottom: 15px;
+            font-size: 12px;
+            color: #2dd4bf;
+            margin-bottom: 20px;
         }
 
         .address-container {
-            background: #1a1a1a;
+            background: #1a1f30;
             border-radius: 16px;
             padding: 18px;
             margin-bottom: 20px;
-            border: 1px solid #333;
-            word-break: break-all;
+            border: 1px solid rgba(45,212,191,0.2);
         }
 
         .address-label {
             font-size: 11px;
-            color: #888;
+            color: #8a92b0;
             margin-bottom: 8px;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -176,21 +126,22 @@
 
         .address-value {
             font-family: monospace;
-            font-size: 13px;
-            color: #ccc;
-            background: #2a2a2a;
-            padding: 12px;
-            border-radius: 10px;
+            font-size: 14px;
+            color: #2dd4bf;
+            background: #0f1322;
+            padding: 14px;
+            border-radius: 12px;
             margin-bottom: 12px;
             word-break: break-all;
+            letter-spacing: 0.5px;
         }
 
         .copy-btn {
-            background: #2a2a2a;
-            border: 1px solid #555;
-            padding: 10px 16px;
-            border-radius: 10px;
-            color: #ccc;
+            background: #2d3748;
+            border: 1px solid rgba(45,212,191,0.3);
+            padding: 12px 16px;
+            border-radius: 12px;
+            color: #2dd4bf;
             cursor: pointer;
             font-size: 13px;
             font-weight: 600;
@@ -199,152 +150,97 @@
         }
 
         .copy-btn:hover {
-            background: #3a3a3a;
-            border-color: #888;
+            background: rgba(45,212,191,0.15);
+            border-color: #2dd4bf;
         }
 
         .copy-btn.copied {
-            background: #6fbf6f;
-            color: white;
-            border-color: #6fbf6f;
+            background: #2dd4bf;
+            color: #0a0e17;
+            border-color: #2dd4bf;
+        }
+
+        .qr-placeholder {
+            background: #1a1f30;
+            border-radius: 20px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            border: 1px solid rgba(45,212,191,0.2);
         }
 
         .qr-container {
             background: white;
-            padding: 20px;
+            padding: 15px;
             border-radius: 16px;
             display: inline-block;
-            margin-bottom: 20px;
-            text-align: center;
         }
 
-        .qr-placeholder {
-            background: #1a1a1a;
-            border-radius: 16px;
-            padding: 20px;
+        .min-amount {
+            font-size: 12px;
+            color: #2dd4bf;
             text-align: center;
-            margin-bottom: 20px;
+            margin: 15px 0;
+            background: rgba(45,212,191,0.1);
+            padding: 10px;
+            border-radius: 10px;
         }
 
         .warning-box {
-            background: rgba(191,191,111,0.1);
-            border-left: 4px solid #bfbf6f;
+            background: rgba(255, 193, 7, 0.1);
+            border-left: 4px solid #ffc107;
             border-radius: 12px;
             padding: 15px;
             margin: 20px 0;
         }
 
         .warning-box p {
-            color: #bfbf6f;
+            color: #ffc107;
             font-size: 12px;
             margin: 5px 0;
         }
 
         .info-box {
-            background: rgba(100,100,100,0.1);
+            background: rgba(45,212,191,0.05);
             border-radius: 12px;
             padding: 15px;
             margin: 15px 0;
             font-size: 12px;
-            color: #888;
+            color: #8a92b0;
+            border: 1px solid rgba(45,212,191,0.15);
         }
 
         .info-box i {
             margin-right: 8px;
-            color: #aaa;
-        }
-
-        .min-amount {
-            font-size: 12px;
-            color: #6fbf6f;
-            text-align: center;
-            margin: 15px 0;
+            color: #2dd4bf;
         }
 
         .back-link {
             display: block;
             text-align: center;
             margin-top: 20px;
-            color: #999;
+            color: #2dd4bf;
             text-decoration: none;
             font-size: 13px;
         }
 
         .back-link:hover {
-            color: #ccc;
+            text-decoration: underline;
         }
 
         hr {
-            border-color: #333;
+            border-color: rgba(45,212,191,0.15);
             margin: 20px 0;
         }
 
-        .submit-deposit-btn {
-            background: linear-gradient(135deg, #6fbf6f, #4a8f4a);
-            border: none;
-            padding: 14px;
-            border-radius: 12px;
-            color: white;
-            font-weight: 700;
-            font-size: 16px;
-            cursor: pointer;
-            width: 100%;
-            margin: 15px 0;
-            transition: 0.2s;
-        }
-
-        .submit-deposit-btn:hover {
-            opacity: 0.9;
-        }
-
-        .submit-deposit-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .status-message {
-            padding: 12px;
-            border-radius: 10px;
-            margin: 15px 0;
-            text-align: center;
-            font-size: 13px;
-            display: none;
-        }
-
-        .status-message.success {
-            background: rgba(111,191,111,0.2);
-            border: 1px solid #6fbf6f;
-            color: #6fbf6f;
-            display: block;
-        }
-
-        .status-message.error {
-            background: rgba(191,111,111,0.2);
-            border: 1px solid #bf6f6f;
-            color: #bf6f6f;
-            display: block;
-        }
-
-        .status-message.pending {
-            background: rgba(191,191,111,0.2);
-            border: 1px solid #bfbf6f;
-            color: #bfbf6f;
-            display: block;
-        }
-
-        .exact-amount-note {
-            background: rgba(111,111,191,0.15);
-            border: 1px solid #6f6fbf;
-            border-radius: 10px;
-            padding: 10px;
-            margin: 10px 0;
-            font-size: 12px;
-            text-align: center;
-        }
-
-        .exact-amount-note i {
-            color: #6f6fbf;
-            margin-right: 8px;
+        @media (max-width: 480px) {
+            .tab-btn {
+                padding: 8px 16px;
+                font-size: 12px;
+            }
+            .address-value {
+                font-size: 11px;
+            }
         }
     </style>
 </head>
@@ -352,239 +248,82 @@
 <div class="container">
     <div class="deposit-card">
         <h1><i class="fas fa-plus-circle"></i> Deposit Funds</h1>
-        <p class="subtitle">Submit deposit request and send cryptocurrency</p>
-
-        <!-- Email Display (pre-filled from logged in user) -->
-        <div class="email-display" id="emailDisplay">
-            <i class="fas fa-envelope"></i> <span id="userEmail">Loading...</span>
-        </div>
-
-        <!-- Amount Input Section -->
-        <div class="amount-section">
-            <label><i class="fas fa-dollar-sign"></i> Deposit Amount (USD)</label>
-            <input type="number" id="depositAmount" class="amount-input" placeholder="Minimum $80" step="10" min="80">
-            <div class="min-amount">
-                <i class="fas fa-info-circle"></i> Minimum Deposit: $80 USD
-            </div>
-        </div>
-
-        <div class="exact-amount-note" id="exactAmountNote" style="display: none;">
-            <i class="fas fa-exclamation-triangle"></i> <strong>IMPORTANT:</strong> Send EXACTLY <span id="exactAmountValue">$0</span> worth of crypto to the address below
-        </div>
+        <p class="subtitle">Add funds to your account to start trading</p>
 
         <!-- Network Tabs -->
         <div class="network-tabs">
-            <button class="tab-btn active" data-network="bnb-bep20">
-                <i class="fab fa-bitcoin"></i> BNB (BEP20)
-            </button>
-            <button class="tab-btn" data-network="usdt-bep20">
-                <i class="fas fa-coins"></i> USDT (BEP20)
-            </button>
-            <button class="tab-btn" data-network="usdt-trc20">
+            <button class="tab-btn active" data-network="usdt-trc20">
                 <i class="fas fa-coins"></i> USDT (TRC20)
             </button>
-            <button class="tab-btn" data-network="usdc-bep20">
-                <i class="fas fa-dollar-sign"></i> USDC (BEP20)
+            <button class="tab-btn" data-network="bitcoin">
+                <i class="fab fa-bitcoin"></i> Bitcoin (BTC)
             </button>
-            <button class="tab-btn" data-network="usdc-erc20">
-                <i class="fab fa-ethereum"></i> USDC (ERC20)
-            </button>
-            <button class="tab-btn" data-network="eth-bep20">
-                <i class="fab fa-ethereum"></i> ETH (BEP20)
-            </button>
-            <button class="tab-btn" data-network="btc-bep20">
-                <i class="fab fa-bitcoin"></i> BTC (BEP20)
-            </button>
-        </div>
-
-        <!-- BNB BEP20 Panel -->
-        <div id="panel-bnb-bep20" class="wallet-panel active">
-            <div class="network-badge">
-                <i class="fas fa-network-wired"></i> Network: BNB Smart Chain (BEP20)
-            </div>
-            <div class="address-container">
-                <div class="address-label">📌 Wallet Address</div>
-                <div class="address-value" id="bnb-bep20-address">0x61f683a9a884c72a6f69f28201fb717254a7459c</div>
-                <button class="copy-btn" onclick="copyAddress('bnb-bep20-address')">
-                    <i class="fas fa-copy"></i> Copy Address
-                </button>
-            </div>
-            <div class="qr-placeholder">
-                <div id="qrcode-bnb-bep20" class="qr-container"></div>
-            </div>
-            <div class="min-amount">
-                <i class="fas fa-info-circle"></i> Minimum Deposit: $80 USD equivalent in BNB
-            </div>
-            <div class="warning-box">
-                <i class="fas fa-exclamation-triangle"></i>
-                <p><strong>⚠️ IMPORTANT:</strong> Send ONLY BNB on BSC (BEP20) network to this address.</p>
-                <p>Sending any other cryptocurrency or using wrong network may result in permanent loss of funds.</p>
-            </div>
-        </div>
-
-        <!-- USDT BEP20 Panel -->
-        <div id="panel-usdt-bep20" class="wallet-panel">
-            <div class="network-badge">
-                <i class="fas fa-network-wired"></i> Network: BNB Smart Chain (BEP20)
-            </div>
-            <div class="address-container">
-                <div class="address-label">📌 Wallet Address</div>
-                <div class="address-value" id="usdt-bep20-address">0x61f683a9a884c72a6f69f28201fb717254a7459c</div>
-                <button class="copy-btn" onclick="copyAddress('usdt-bep20-address')">
-                    <i class="fas fa-copy"></i> Copy Address
-                </button>
-            </div>
-            <div class="qr-placeholder">
-                <div id="qrcode-usdt-bep20" class="qr-container"></div>
-            </div>
-            <div class="min-amount">
-                <i class="fas fa-info-circle"></i> Minimum Deposit: $80 USD equivalent in USDT
-            </div>
-            <div class="warning-box">
-                <i class="fas fa-exclamation-triangle"></i>
-                <p><strong>⚠️ IMPORTANT:</strong> Send ONLY USDT (BEP20) on BSC network to this address.</p>
-                <p>Make sure to select BEP20 network when withdrawing from your exchange/wallet.</p>
-            </div>
         </div>
 
         <!-- USDT TRC20 Panel -->
-        <div id="panel-usdt-trc20" class="wallet-panel">
+        <div id="panel-usdt-trc20" class="wallet-panel active">
             <div class="network-badge">
                 <i class="fas fa-network-wired"></i> Network: TRON (TRC20)
             </div>
             <div class="address-container">
-                <div class="address-label">📌 Wallet Address</div>
-                <div class="address-value" id="usdt-trc20-address">TRpMxesumMB6H7v4CZhKcnJZzjfnsXMSC3</div>
-                <button class="copy-btn" onclick="copyAddress('usdt-trc20-address')">
+                <div class="address-label">📌 USDT Wallet Address</div>
+                <div class="address-value" id="usdt-address">TNM2SREr7uAVbumYbzwXvFCa3TejcXAtGV</div>
+                <button class="copy-btn" onclick="copyAddress('usdt-address')">
                     <i class="fas fa-copy"></i> Copy Address
                 </button>
             </div>
             <div class="qr-placeholder">
-                <div id="qrcode-usdt-trc20" class="qr-container"></div>
+                <div id="qrcode-usdt" class="qr-container"></div>
             </div>
             <div class="min-amount">
-                <i class="fas fa-info-circle"></i> Minimum Deposit: $80 USD equivalent in USDT
+                <i class="fas fa-info-circle"></i> Minimum Deposit: $50 USD equivalent in USDT
             </div>
             <div class="warning-box">
                 <i class="fas fa-exclamation-triangle"></i>
-                <p><strong>⚠️ IMPORTANT:</strong> Send ONLY USDT (TRC20) on TRON network to this address.</p>
-                <p>Make sure to select TRC20 network when withdrawing from your exchange/wallet.</p>
+                <p><strong>⚠️ IMPORTANT:</strong> Send ONLY <strong>USDT (TRC20)</strong> on the TRON network to this address.</p>
+                <p>Sending any other cryptocurrency or using wrong network (ERC20, BEP20) may result in permanent loss of funds.</p>
+                <p>Make sure to select <strong>TRC20 network</strong> when withdrawing from your exchange or wallet.</p>
             </div>
         </div>
 
-        <!-- USDC BEP20 Panel -->
-        <div id="panel-usdc-bep20" class="wallet-panel">
+        <!-- Bitcoin Panel -->
+        <div id="panel-bitcoin" class="wallet-panel">
             <div class="network-badge">
-                <i class="fas fa-network-wired"></i> Network: BNB Smart Chain (BEP20)
+                <i class="fas fa-network-wired"></i> Network: Bitcoin (BTC)
             </div>
             <div class="address-container">
-                <div class="address-label">📌 Wallet Address</div>
-                <div class="address-value" id="usdc-bep20-address">0x61f683a9a884c72a6f69f28201fb717254a7459c</div>
-                <button class="copy-btn" onclick="copyAddress('usdc-bep20-address')">
+                <div class="address-label">📌 Bitcoin Wallet Address</div>
+                <div class="address-value" id="btc-address">1PQAwm2hs4jnjigaMG45RbLbg2UfSPqnqS</div>
+                <button class="copy-btn" onclick="copyAddress('btc-address')">
                     <i class="fas fa-copy"></i> Copy Address
                 </button>
             </div>
             <div class="qr-placeholder">
-                <div id="qrcode-usdc-bep20" class="qr-container"></div>
+                <div id="qrcode-btc" class="qr-container"></div>
             </div>
             <div class="min-amount">
-                <i class="fas fa-info-circle"></i> Minimum Deposit: $80 USD equivalent in USDC
+                <i class="fas fa-info-circle"></i> Minimum Deposit: $50 USD equivalent in Bitcoin
             </div>
             <div class="warning-box">
                 <i class="fas fa-exclamation-triangle"></i>
-                <p><strong>⚠️ IMPORTANT:</strong> Send ONLY USDC (BEP20) on BSC network to this address.</p>
-            </div>
-        </div>
-
-        <!-- USDC ERC20 Panel -->
-        <div id="panel-usdc-erc20" class="wallet-panel">
-            <div class="network-badge">
-                <i class="fas fa-network-wired"></i> Network: Ethereum (ERC20)
-            </div>
-            <div class="address-container">
-                <div class="address-label">📌 Wallet Address</div>
-                <div class="address-value" id="usdc-erc20-address">0x61f683a9a884c72a6f69f28201fb717254a7459c</div>
-                <button class="copy-btn" onclick="copyAddress('usdc-erc20-address')">
-                    <i class="fas fa-copy"></i> Copy Address
-                </button>
-            </div>
-            <div class="qr-placeholder">
-                <div id="qrcode-usdc-erc20" class="qr-container"></div>
-            </div>
-            <div class="min-amount">
-                <i class="fas fa-info-circle"></i> Minimum Deposit: $80 USD equivalent in USDC
-            </div>
-            <div class="warning-box">
-                <i class="fas fa-exclamation-triangle"></i>
-                <p><strong>⚠️ IMPORTANT:</strong> Send ONLY USDC (ERC20) on Ethereum network to this address.</p>
-                <p>Gas fees on Ethereum can be high. Consider using BEP20 or TRC20 for lower fees.</p>
-            </div>
-        </div>
-
-        <!-- ETH BEP20 Panel -->
-        <div id="panel-eth-bep20" class="wallet-panel">
-            <div class="network-badge">
-                <i class="fas fa-network-wired"></i> Network: BNB Smart Chain (BEP20)
-            </div>
-            <div class="address-container">
-                <div class="address-label">📌 Wallet Address</div>
-                <div class="address-value" id="eth-bep20-address">0x61f683a9a884c72a6f69f28201fb717254a7459c</div>
-                <button class="copy-btn" onclick="copyAddress('eth-bep20-address')">
-                    <i class="fas fa-copy"></i> Copy Address
-                </button>
-            </div>
-            <div class="qr-placeholder">
-                <div id="qrcode-eth-bep20" class="qr-container"></div>
-            </div>
-            <div class="min-amount">
-                <i class="fas fa-info-circle"></i> Minimum Deposit: $80 USD equivalent in ETH
-            </div>
-            <div class="warning-box">
-                <i class="fas fa-exclamation-triangle"></i>
-                <p><strong>⚠️ IMPORTANT:</strong> Send ONLY ETH (BEP20) on BSC network to this address.</p>
-                <p>This is Binance-Peg Ethereum Token, not native ETH on Ethereum network.</p>
-            </div>
-        </div>
-
-        <!-- BTC BEP20 Panel -->
-        <div id="panel-btc-bep20" class="wallet-panel">
-            <div class="network-badge">
-                <i class="fas fa-network-wired"></i> Network: BNB Smart Chain (BEP20)
-            </div>
-            <div class="address-container">
-                <div class="address-label">📌 Wallet Address</div>
-                <div class="address-value" id="btc-bep20-address">0x61f683a9a884c72a6f69f28201fb717254a7459c</div>
-                <button class="copy-btn" onclick="copyAddress('btc-bep20-address')">
-                    <i class="fas fa-copy"></i> Copy Address
-                </button>
-            </div>
-            <div class="qr-placeholder">
-                <div id="qrcode-btc-bep20" class="qr-container"></div>
-            </div>
-            <div class="min-amount">
-                <i class="fas fa-info-circle"></i> Minimum Deposit: $80 USD equivalent in BTCB
-            </div>
-            <div class="warning-box">
-                <i class="fas fa-exclamation-triangle"></i>
-                <p><strong>⚠️ IMPORTANT:</strong> Send ONLY BTCB (BEP20 - Binance-Peg Bitcoin) on BSC network.</p>
-                <p>Do NOT send native Bitcoin (BTC) to this address - only BEP20 wrapped Bitcoin.</p>
+                <p><strong>⚠️ IMPORTANT:</strong> Send ONLY <strong>Bitcoin (BTC)</strong> to this address.</p>
+                <p>Do NOT send Bitcoin Cash (BCH), Bitcoin SV (BSV), or any other cryptocurrency to this address.</p>
+                <p>Transactions typically require 1-3 confirmations before being credited.</p>
             </div>
         </div>
 
         <hr>
 
-        <button class="submit-deposit-btn" id="submitDepositBtn" onclick="submitDepositRequest()">
-            <i class="fas fa-paper-plane"></i> Submit Deposit Request
-        </button>
-
-        <div id="statusMessage" class="status-message"></div>
-
         <div class="info-box">
-            <i class="fas fa-clock"></i> <strong>Deposit will take 2 minutes to reflect</strong> after admin approval.
+            <i class="fas fa-clock"></i> <strong>After Payment:</strong> Send the transaction hash to support or wait for admin verification. Funds will be credited within 15-30 minutes after confirmation.
         </div>
 
         <div class="info-box">
-            <i class="fas fa-question-circle"></i> <strong>Need Help?</strong> Contact support with your transaction ID and registered email address.
+            <i class="fas fa-shield-alt"></i> <strong>Secure & Safe:</strong> All deposits are monitored and verified by our admin team. Your funds are secure.
+        </div>
+
+        <div class="info-box">
+            <i class="fas fa-question-circle"></i> <strong>Need Help?</strong> Contact our support team with your transaction ID and registered email address.
         </div>
 
         <a href="dashboard.html" class="back-link"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
@@ -592,73 +331,54 @@
 </div>
 
 <script>
-    const API_URL = 'https://lucidalgorithms.onrender.com';
+    // Check if user is logged in
     const token = localStorage.getItem('token');
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     
     if (!token) {
         window.location.href = 'index.html';
     }
-
-    // Display user email
-    document.getElementById('userEmail').innerText = user.email || 'Not available';
-    let currentDepositId = null;
-    let selectedNetwork = 'bnb-bep20';
-
-    // All wallet addresses (your provided addresses)
+    
+    // Wallet addresses
     const wallets = {
-        'bnb-bep20': {
-            address: '0x61f683a9a884c72a6f69f28201fb717254a7459c',
-            crypto: 'BNB',
-            network: 'BSC BEP20'
+        usdt: {
+            address: 'TNM2SREr7uAVbumYbzwXvFCa3TejcXAtGV',
+            name: 'USDT TRC20'
         },
-        'usdt-bep20': {
-            address: '0x61f683a9a884c72a6f69f28201fb717254a7459c',
-            crypto: 'USDT',
-            network: 'BSC BEP20'
-        },
-        'usdt-trc20': {
-            address: 'TRpMxesumMB6H7v4CZhKcnJZzjfnsXMSC3',
-            crypto: 'USDT',
-            network: 'TRON TRC20'
-        },
-        'usdc-bep20': {
-            address: '0x61f683a9a884c72a6f69f28201fb717254a7459c',
-            crypto: 'USDC',
-            network: 'BSC BEP20'
-        },
-        'usdc-erc20': {
-            address: '0x61f683a9a884c72a6f69f28201fb717254a7459c',
-            crypto: 'USDC',
-            network: 'Ethereum ERC20'
-        },
-        'eth-bep20': {
-            address: '0x61f683a9a884c72a6f69f28201fb717254a7459c',
-            crypto: 'ETH',
-            network: 'BSC BEP20'
-        },
-        'btc-bep20': {
-            address: '0x61f683a9a884c72a6f69f28201fb717254a7459c',
-            crypto: 'BTCB',
-            network: 'BSC BEP20'
+        btc: {
+            address: '1PQAwm2hs4jnjigaMG45RbLbg2UfSPqnqS',
+            name: 'Bitcoin'
         }
     };
 
-    // Generate QR codes for all wallets
-    function generateAllQRCodes() {
-        for (const [key, wallet] of Object.entries(wallets)) {
-            const qrContainer = document.getElementById(`qrcode-${key}`);
-            if (qrContainer) {
-                qrContainer.innerHTML = '';
-                new QRCode(qrContainer, {
-                    text: wallet.address,
-                    width: 180,
-                    height: 180,
-                    colorDark: '#000000',
-                    colorLight: '#ffffff',
-                    correctLevel: QRCode.CorrectLevel.H
-                });
-            }
+    // Generate QR codes when page loads
+    function generateQRCodes() {
+        // USDT QR Code
+        const usdtContainer = document.getElementById('qrcode-usdt');
+        if (usdtContainer) {
+            usdtContainer.innerHTML = '';
+            new QRCode(usdtContainer, {
+                text: wallets.usdt.address,
+                width: 180,
+                height: 180,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+
+        // Bitcoin QR Code
+        const btcContainer = document.getElementById('qrcode-btc');
+        if (btcContainer) {
+            btcContainer.innerHTML = '';
+            new QRCode(btcContainer, {
+                text: wallets.btc.address,
+                width: 180,
+                height: 180,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H
+            });
         }
     }
 
@@ -668,6 +388,7 @@
         const address = addressElement.innerText;
         
         navigator.clipboard.writeText(address).then(() => {
+            // Find the copy button
             const container = addressElement.closest('.address-container');
             const copyBtn = container.querySelector('.copy-btn');
             const originalText = copyBtn.innerHTML;
@@ -685,133 +406,34 @@
         });
     };
 
-    function showStatus(message, type) {
-        const statusDiv = document.getElementById('statusMessage');
-        statusDiv.className = `status-message ${type}`;
-        statusDiv.innerHTML = message;
-        setTimeout(() => {
-            if (!statusDiv.className.includes('pending')) {
-                statusDiv.style.display = 'none';
-            }
-        }, 8000);
-    }
-
-    async function submitDepositRequest() {
-        const amount = parseFloat(document.getElementById('depositAmount').value);
-        
-        if (!amount || isNaN(amount)) {
-            showStatus('Please enter a valid amount', 'error');
-            return;
-        }
-        
-        if (amount < 80) {
-            showStatus('Minimum deposit is $80 USD', 'error');
-            return;
-        }
-        
-        // Get selected network
-        const activeTab = document.querySelector('.tab-btn.active');
-        const network = activeTab.getAttribute('data-network');
-        const walletInfo = wallets[network];
-        
-        // Show exact amount note
-        document.getElementById('exactAmountValue').innerText = `$${amount.toFixed(2)}`;
-        document.getElementById('exactAmountNote').style.display = 'block';
-        
-        try {
-            const response = await fetch(`${API_URL}/api/deposit/request`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    amount: amount,
-                    email: user.email,
-                    network: network,
-                    crypto: walletInfo.crypto,
-                    walletAddress: walletInfo.address
-                })
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                currentDepositId = data.depositId;
-                showStatus(`✅ Deposit request submitted! Amount: $${amount.toFixed(2)} on ${walletInfo.crypto} (${walletInfo.network}). Admin will approve shortly. Deposit will take 2 minutes to reflect after approval.`, 'pending');
-                
-                const submitBtn = document.getElementById('submitDepositBtn');
-                submitBtn.innerHTML = '<i class="fas fa-clock"></i> Request Submitted - Pending Admin Approval';
-                submitBtn.disabled = true;
-                
-                // Start checking status
-                checkDepositStatus();
-            } else {
-                showStatus(data.error || 'Failed to submit deposit request', 'error');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            showStatus('Error submitting deposit request. Please try again.', 'error');
-        }
-    }
-
-    async function checkDepositStatus() {
-        if (!currentDepositId) return;
-        
-        const interval = setInterval(async () => {
-            try {
-                const response = await fetch(`${API_URL}/api/deposit/status/${currentDepositId}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const data = await response.json();
-                
-                if (data.status === 'completed') {
-                    clearInterval(interval);
-                    showStatus('✅ Deposit approved! Your balance has been updated. Redirecting...', 'success');
-                    setTimeout(() => {
-                        window.location.href = 'dashboard.html';
-                    }, 2000);
-                } else if (data.status === 'rejected') {
-                    clearInterval(interval);
-                    showStatus('❌ Deposit request was rejected. Please contact support.', 'error');
-                    const submitBtn = document.getElementById('submitDepositBtn');
-                    submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Deposit Request';
-                    submitBtn.disabled = false;
-                }
-            } catch (error) {
-                console.error('Error checking status:', error);
-            }
-        }, 5000);
-    }
-
     // Tab switching functionality
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
+            // Remove active class from all tabs and panels
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.wallet-panel').forEach(panel => panel.classList.remove('active'));
             
+            // Add active class to clicked tab
             btn.classList.add('active');
-            selectedNetwork = btn.getAttribute('data-network');
-            const panel = document.getElementById(`panel-${selectedNetwork}`);
+            
+            // Show corresponding panel
+            const network = btn.getAttribute('data-network');
+            const panel = document.getElementById(`panel-${network}`);
             if (panel) {
                 panel.classList.add('active');
             }
         });
     });
 
-    // Reset submit button when amount changes
-    document.getElementById('depositAmount').addEventListener('input', () => {
-        const submitBtn = document.getElementById('submitDepositBtn');
-        submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Deposit Request';
-        submitBtn.disabled = false;
-        currentDepositId = null;
-        document.getElementById('exactAmountNote').style.display = 'none';
-        document.getElementById('statusMessage').style.display = 'none';
-    });
-
     // Generate QR codes when page loads
     document.addEventListener('DOMContentLoaded', () => {
-        generateAllQRCodes();
+        generateQRCodes();
+        
+        // Log user email for reference
+        console.log('Registered email for this account:', user.email);
+        console.log('Deposit addresses loaded:');
+        console.log('USDT TRC20:', wallets.usdt.address);
+        console.log('Bitcoin:', wallets.btc.address);
     });
 </script>
 </body>

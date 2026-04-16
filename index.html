@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Lucid Algorithms | AI-Powered Crypto Trading Platform</title>
+    <title>Algon Flow Market | AI-Powered Crypto Trading Platform</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         * {
@@ -14,8 +14,8 @@
         }
 
         body {
-            background: #0a0a0a;
-            color: #e0e0e0;
+            background: #0a0e17;
+            color: #fff;
             overflow-x: hidden;
         }
 
@@ -33,13 +33,13 @@
             position: absolute;
             border-radius: 50%;
             filter: blur(80px);
-            opacity: 0.15;
+            opacity: 0.3;
             animation: float 20s infinite;
         }
 
-        .orb-1 { width: 500px; height: 500px; background: #555; top: -200px; right: -100px; }
-        .orb-2 { width: 400px; height: 400px; background: #777; bottom: -150px; left: -100px; animation-delay: -5s; }
-        .orb-3 { width: 300px; height: 300px; background: #444; top: 50%; left: 50%; transform: translate(-50%, -50%); animation-delay: -10s; }
+        .orb-1 { width: 500px; height: 500px; background: #2dd4bf; top: -200px; right: -100px; }
+        .orb-2 { width: 400px; height: 400px; background: #00c6fb; bottom: -150px; left: -100px; animation-delay: -5s; }
+        .orb-3 { width: 300px; height: 300px; background: #764ba2; top: 50%; left: 50%; transform: translate(-50%, -50%); animation-delay: -10s; }
 
         @keyframes float {
             0%,100% { transform: translate(0,0) scale(1); }
@@ -53,14 +53,10 @@
             left: 0;
             right: 0;
             z-index: 1000;
-            padding: 15px 50px;
-            background: rgba(10,10,10,0.95);
+            padding: 20px 50px;
+            background: rgba(10,14,23,0.95);
             backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(100,100,100,0.3);
-        }
-
-        @media (max-width: 768px) {
-            .navbar { padding: 12px 20px; }
+            border-bottom: 1px solid rgba(45,212,191,0.2);
         }
 
         .nav-container {
@@ -80,60 +76,58 @@
         }
 
         .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #888, #555);
-            border-radius: 10px;
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, #2dd4bf, #00c6fb);
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
+            font-size: 22px;
         }
 
         .logo-text {
-            font-size: 22px;
+            font-size: 26px;
             font-weight: 800;
-            letter-spacing: 1px;
-            color: #ccc;
+            background: linear-gradient(135deg, #fff, #2dd4bf, #00c6fb);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
         }
 
         .auth-buttons {
             display: flex;
-            gap: 12px;
+            gap: 15px;
         }
 
         .btn-login {
-            padding: 8px 24px;
+            padding: 10px 28px;
             background: transparent;
-            border: 2px solid #888;
-            border-radius: 30px;
-            color: #ccc;
+            border: 2px solid #2dd4bf;
+            border-radius: 40px;
+            color: #2dd4bf;
             font-weight: 600;
             cursor: pointer;
             transition: 0.3s;
-            font-size: 14px;
         }
 
         .btn-login:hover {
-            background: rgba(136,136,136,0.2);
-            border-color: #aaa;
+            background: rgba(45,212,191,0.1);
         }
 
         .btn-signup {
-            padding: 8px 24px;
-            background: linear-gradient(135deg, #666, #444);
+            padding: 10px 28px;
+            background: linear-gradient(135deg, #2dd4bf, #00c6fb);
             border: none;
-            border-radius: 30px;
-            color: white;
+            border-radius: 40px;
+            color: #0a0e17;
             font-weight: 700;
             cursor: pointer;
             transition: 0.3s;
-            font-size: 14px;
         }
 
         .btn-signup:hover {
-            transform: scale(1.02);
-            background: linear-gradient(135deg, #777, #555);
+            transform: scale(1.05);
         }
 
         .hero {
@@ -142,229 +136,150 @@
             min-height: 100vh;
             display: flex;
             align-items: center;
-            padding: 100px 50px 60px;
+            padding: 120px 50px 80px;
             max-width: 1400px;
             margin: 0 auto;
-        }
-
-        @media (max-width: 968px) {
-            .hero { padding: 90px 20px 40px; }
         }
 
         .hero-content {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 50px;
+            gap: 60px;
             align-items: center;
         }
 
-        @media (max-width: 968px) {
-            .hero-content { grid-template-columns: 1fr; gap: 30px; }
-        }
-
         .hero-left h1 {
-            font-size: 52px;
+            font-size: 64px;
             font-weight: 800;
             line-height: 1.1;
-            margin-bottom: 20px;
-        }
-
-        @media (max-width: 768px) {
-            .hero-left h1 { font-size: 36px; }
+            margin-bottom: 25px;
         }
 
         .gradient-text {
-            background: linear-gradient(135deg, #ccc, #888, #666);
+            background: linear-gradient(135deg, #2dd4bf, #00c6fb, #764ba2);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
         }
 
         .hero-left p {
-            font-size: 16px;
-            color: #999;
-            margin-bottom: 30px;
+            font-size: 18px;
+            color: #8a92b0;
+            margin-bottom: 35px;
             line-height: 1.6;
         }
 
         .hero-stats {
             display: flex;
             gap: 40px;
-            margin-bottom: 35px;
+            margin-bottom: 40px;
             flex-wrap: wrap;
-        }
-
-        .stat {
-            text-align: center;
-            background: rgba(30,30,40,0.5);
-            padding: 15px 25px;
-            border-radius: 16px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(100,100,100,0.2);
-            min-width: 140px;
         }
 
         .stat-number {
             font-size: 36px;
             font-weight: 800;
-            color: #ccc;
+            color: #2dd4bf;
         }
 
         .stat-label {
-            font-size: 13px;
-            color: #888;
-            margin-top: 5px;
-        }
-
-        .since-badge {
-            display: inline-block;
-            background: rgba(100,100,100,0.2);
-            padding: 5px 15px;
-            border-radius: 30px;
-            font-size: 12px;
-            color: #aaa;
-            margin-bottom: 20px;
+            font-size: 14px;
+            color: #8a92b0;
         }
 
         .hero-right {
-            background: rgba(20,20,30,0.7);
+            background: rgba(15,19,34,0.7);
             backdrop-filter: blur(20px);
-            border-radius: 24px;
-            padding: 25px;
-            border: 1px solid rgba(100,100,100,0.3);
-        }
-
-        .hero-image {
-            width: 100%;
-            border-radius: 16px;
-            background: linear-gradient(135deg, #2a2a2a, #1a1a1a);
+            border-radius: 30px;
             padding: 30px;
-            text-align: center;
-        }
-
-        .hero-image i {
-            font-size: 80px;
-            color: #888;
-            margin-bottom: 15px;
-        }
-
-        .hero-image h3 {
-            color: #ccc;
-            margin-bottom: 10px;
-            font-size: 20px;
-        }
-
-        .hero-image p {
-            font-size: 13px;
-            color: #777;
+            border: 1px solid rgba(45,212,191,0.3);
         }
 
         .live-price-card {
             text-align: center;
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid rgba(100,100,100,0.2);
         }
 
         .live-price-card h3 {
-            margin-bottom: 12px;
-            color: #aaa;
-            font-size: 16px;
+            margin-bottom: 15px;
+            color: #2dd4bf;
         }
 
         .btc-price {
-            font-size: 36px;
+            font-size: 48px;
             font-weight: 800;
-            margin: 15px 0;
-            color: #ccc;
+            margin: 20px 0;
         }
 
         .price-change {
-            font-size: 14px;
+            font-size: 18px;
         }
 
-        .positive { color: #6fbf6f; }
-        .negative { color: #bf6f6f; }
+        .positive { color: #2dd4bf; }
+        .negative { color: #ff6b6b; }
 
         .features-section {
             position: relative;
             z-index: 1;
-            padding: 60px 50px;
+            padding: 80px 50px;
             max-width: 1400px;
             margin: 0 auto;
-        }
-
-        @media (max-width: 768px) {
-            .features-section { padding: 40px 20px; }
         }
 
         .section-title {
             text-align: center;
             font-size: 36px;
             margin-bottom: 50px;
-            color: #ccc;
-        }
-
-        @media (max-width: 768px) {
-            .section-title { font-size: 28px; margin-bottom: 30px; }
         }
 
         .features-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 25px;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
         }
 
         .feature-card {
-            background: rgba(20,20,30,0.7);
+            background: rgba(15,19,34,0.7);
             backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 30px 25px;
+            border-radius: 24px;
+            padding: 30px;
             text-align: center;
-            border: 1px solid rgba(100,100,100,0.2);
+            border: 1px solid rgba(45,212,191,0.2);
             transition: 0.3s;
         }
 
         .feature-card:hover {
-            transform: translateY(-5px);
-            border-color: #888;
+            transform: translateY(-10px);
+            border-color: #2dd4bf;
         }
 
         .feature-icon {
             width: 70px;
             height: 70px;
-            background: rgba(100,100,100,0.2);
-            border-radius: 18px;
+            background: linear-gradient(135deg, rgba(45,212,191,0.2), rgba(0,198,251,0.1));
+            border-radius: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
             margin: 0 auto 20px;
-            font-size: 32px;
-            color: #aaa;
+            font-size: 30px;
+            color: #2dd4bf;
         }
 
         .feature-card h3 {
-            margin-bottom: 12px;
-            font-size: 20px;
-            color: #ccc;
+            margin-bottom: 15px;
         }
 
         .feature-card p {
-            color: #888;
+            color: #8a92b0;
             line-height: 1.6;
-            font-size: 14px;
         }
 
         .about-section {
             position: relative;
             z-index: 1;
-            padding: 60px 50px;
+            padding: 80px 50px;
             max-width: 1400px;
             margin: 0 auto;
-        }
-
-        @media (max-width: 768px) {
-            .about-section { padding: 40px 20px; }
         }
 
         .about-content {
@@ -374,53 +289,31 @@
             align-items: center;
         }
 
-        @media (max-width: 968px) {
-            .about-content { grid-template-columns: 1fr; gap: 30px; }
-        }
-
         .about-text h2 {
             font-size: 36px;
             margin-bottom: 20px;
-            color: #ccc;
-        }
-
-        @media (max-width: 768px) {
-            .about-text h2 { font-size: 28px; }
         }
 
         .about-text p {
-            color: #888;
+            color: #8a92b0;
             line-height: 1.8;
             margin-bottom: 20px;
-            font-size: 15px;
         }
 
         .about-stats {
             display: flex;
             gap: 30px;
             margin-top: 30px;
-            flex-wrap: wrap;
         }
 
         .about-stat {
             text-align: center;
-            background: rgba(30,30,40,0.5);
-            padding: 15px 25px;
-            border-radius: 16px;
-            flex: 1;
-            min-width: 100px;
         }
 
         .about-stat .number {
             font-size: 32px;
             font-weight: 800;
-            color: #ccc;
-        }
-
-        .about-stat .label {
-            font-size: 12px;
-            color: #777;
-            margin-top: 5px;
+            color: #2dd4bf;
         }
 
         .modal {
@@ -441,123 +334,79 @@
         }
 
         .modal-content {
-            background: #1a1a1a;
-            border-radius: 20px;
-            padding: 35px;
-            width: 420px;
+            background: #0f1322;
+            border-radius: 24px;
+            padding: 40px;
+            width: 450px;
             max-width: 90%;
-            border: 1px solid #555;
+            border: 1px solid #2dd4bf;
         }
 
         .modal-content h2 {
             margin-bottom: 20px;
-            color: #ccc;
-            font-size: 24px;
+            color: #2dd4bf;
         }
 
         .modal-content input {
             width: 100%;
-            padding: 12px 15px;
+            padding: 14px;
             margin: 10px 0;
-            background: #2a2a2a;
-            border: 1px solid #444;
+            background: #1a1f30;
+            border: 1px solid #2d3748;
             border-radius: 10px;
             color: white;
-            font-size: 14px;
+            font-size: 16px;
         }
 
         .modal-content input:focus {
             outline: none;
-            border-color: #888;
+            border-color: #2dd4bf;
         }
 
         .modal-content button {
             width: 100%;
-            padding: 12px;
+            padding: 14px;
             margin-top: 15px;
-            background: linear-gradient(135deg, #666, #444);
+            background: linear-gradient(135deg, #2dd4bf, #00c6fb);
             border: none;
             border-radius: 10px;
             font-weight: 700;
             cursor: pointer;
-            font-size: 15px;
-            color: white;
+            font-size: 16px;
+            color: #0a0e17;
         }
 
         .error-message {
-            background: rgba(191,111,111,0.2);
-            border: 1px solid #bf6f6f;
-            color: #bf6f6f;
-            padding: 10px;
-            border-radius: 8px;
+            background: rgba(255,107,107,0.1);
+            border: 1px solid #ff6b6b;
+            color: #ff6b6b;
+            padding: 12px;
+            border-radius: 10px;
             margin-bottom: 15px;
             display: none;
-            font-size: 13px;
+            font-size: 14px;
         }
 
         .footer {
             position: relative;
             z-index: 1;
-            background: #111;
-            padding: 40px 50px 30px;
+            background: #0f1322;
+            padding: 40px 50px;
             text-align: center;
-            border-top: 1px solid rgba(100,100,100,0.2);
+            border-top: 1px solid rgba(45,212,191,0.2);
         }
 
-        .footer-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 30px;
-            text-align: left;
-            margin-bottom: 30px;
+        .footer p {
+            color: #8a92b0;
         }
 
-        .footer-section h4 {
-            color: #aaa;
-            margin-bottom: 15px;
-            font-size: 16px;
-        }
-
-        .footer-section p, .footer-section a {
-            color: #777;
-            font-size: 13px;
-            line-height: 1.8;
-            text-decoration: none;
-            display: block;
-        }
-
-        .footer-section a:hover {
-            color: #aaa;
-        }
-
-        .footer-bottom {
-            border-top: 1px solid #2a2a2a;
-            padding-top: 20px;
-            text-align: center;
-        }
-
-        .footer-bottom p {
-            color: #666;
-            font-size: 12px;
-        }
-
-        .footer-bottom a {
-            color: #888;
-            text-decoration: none;
-        }
-
-        .modal-close {
-            float: right;
-            font-size: 28px;
-            cursor: pointer;
-            color: #999;
-            transition: 0.2s;
-        }
-
-        .modal-close:hover {
-            color: #ccc;
+        @media (max-width: 968px) {
+            .hero-content { grid-template-columns: 1fr; }
+            .hero-left h1 { font-size: 42px; }
+            .navbar { padding: 15px 20px; }
+            .hero { padding: 100px 20px 60px; }
+            .features-section, .about-section { padding: 50px 20px; }
+            .about-content { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -572,7 +421,7 @@
         <div class="nav-container">
             <div class="logo">
                 <div class="logo-icon"><i class="fas fa-chart-line"></i></div>
-                <div class="logo-text">LUCID ALGORITHMS</div>
+                <div class="logo-text">ALGON FLOW</div>
             </div>
             <div class="auth-buttons">
                 <button class="btn-login" onclick="openLoginModal()">Sign In</button>
@@ -584,38 +433,21 @@
     <section class="hero">
         <div class="hero-content">
             <div class="hero-left">
-                <div class="since-badge">
-                    <i class="fas fa-calendar-alt"></i>
-                </div>
                 <h1>Trade Crypto with <span class="gradient-text">AI-Powered</span> Intelligence</h1>
-                <p>Join 1,200+ traders using Lucid Algorithms' advanced AI algorithms. Our proprietary trading system uses machine learning to analyze market patterns and execute trades with precision.</p>
+                <p>Join 50,000+ traders using Algon Flow's advanced AI algorithms. Our proprietary trading system uses machine learning to analyze market patterns and execute trades with up to 92% accuracy.</p>
                 <div class="hero-stats">
-                    <div class="stat">
-                        <div class="stat-number">1,200+</div>
-                        <div class="stat-label">Active Traders</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-number">$15M+</div>
-                        <div class="stat-label">Trading Volume</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-number">88%</div>
-                        <div class="stat-label">Max Profit Cap</div>
-                    </div>
+                    <div class="stat"><div class="stat-number">50,000+</div><div class="stat-label">Active Traders</div></div>
+                    <div class="stat"><div class="stat-number">$2.5B+</div><div class="stat-label">Trading Volume</div></div>
+                    <div class="stat"><div class="stat-number">22%</div><div class="stat-label">Max Daily ROI</div></div>
                 </div>
                 <button class="btn-signup" onclick="window.location.href='register.html'" style="font-size: 16px; padding: 14px 35px;">Start Trading Now →</button>
             </div>
             <div class="hero-right">
-                <div class="hero-image">
-                    <i class="fas fa-chart-line"></i>
-                    <h3>AI Trading Visualization</h3>
-                    <p>Real-time market analysis powered by machine learning algorithms</p>
-                </div>
                 <div class="live-price-card">
                     <h3><i class="fab fa-bitcoin"></i> Bitcoin (BTC/USD)</h3>
                     <div class="btc-price" id="btcPrice">Loading...</div>
                     <div class="price-change" id="btcChange">Loading...</div>
-                    <div style="margin-top: 15px; font-size: 11px; color: #777;">
+                    <div style="margin-top: 20px; font-size: 12px; color: #8a92b0;">
                         <div>24h High: <span id="high24h">-</span></div>
                         <div>24h Low: <span id="low24h">-</span></div>
                         <div>24h Volume: <span id="volume">-</span></div>
@@ -626,114 +458,54 @@
     </section>
 
     <section class="features-section">
-        <h2 class="section-title">Why Choose <span class="gradient-text">Lucid Algorithms</span></h2>
+        <h2 class="section-title">Why Choose <span class="gradient-text">Algon Flow</span></h2>
         <div class="features-grid">
-            <div class="feature-card">
-                <div class="feature-icon"><i class="fas fa-robot"></i></div>
-                <h3>AI-Powered Trading</h3>
-                <p>Our advanced AI algorithms analyze market trends in real-time, providing accurate trading signals and automated execution.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon"><i class="fas fa-shield-alt"></i></div>
-                <h3>Secure & Safe</h3>
-                <p>Bank-level security with 256-bit encryption, and cold storage for all digital assets.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
-                <h3>High Returns</h3>
-                <p>Earn up to 88% profit on successful trades with our AI-managed trading strategies.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon"><i class="fas fa-clock"></i></div>
-                <h3>24/7 Support</h3>
-                <p>Our dedicated support team is available around the clock to assist you with any questions.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon"><i class="fas fa-mobile-alt"></i></div>
-                <h3>Mobile Friendly</h3>
-                <p>Access your account and trade from anywhere using any device - desktop, tablet, or smartphone.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon"><i class="fas fa-coins"></i></div>
-                <h3>Multiple Assets</h3>
-                <p>Trade cryptocurrencies, commodities, and forex pairs all from a single platform.</p>
-            </div>
+            <div class="feature-card"><div class="feature-icon"><i class="fas fa-robot"></i></div><h3>AI-Powered Trading</h3><p>Our advanced AI algorithms analyze market trends in real-time, providing you with accurate trading signals and automated execution.</p></div>
+            <div class="feature-card"><div class="feature-icon"><i class="fas fa-shield-alt"></i></div><h3>Secure & Safe</h3><p>Bank-level security with 256-bit encryption, 2FA authentication, and cold storage for all digital assets.</p></div>
+            <div class="feature-card"><div class="feature-icon"><i class="fas fa-chart-line"></i></div><h3>High Returns</h3><p>Earn up to 22% daily returns with our AI-managed trading strategies. Minimum investment of just $115.</p></div>
+            <div class="feature-card"><div class="feature-icon"><i class="fas fa-clock"></i></div><h3>24/7 Support</h3><p>Our dedicated support team is available around the clock to assist you with any questions or issues.</p></div>
+            <div class="feature-card"><div class="feature-icon"><i class="fas fa-mobile-alt"></i></div><h3>Mobile Friendly</h3><p>Access your account and trade from anywhere using any device - desktop, tablet, or smartphone.</p></div>
+            <div class="feature-card"><div class="feature-icon"><i class="fas fa-coins"></i></div><h3>Multiple Assets</h3><p>Trade cryptocurrencies, commodities, and forex pairs all from a single platform.</p></div>
         </div>
     </section>
 
     <section class="about-section">
         <div class="about-content">
             <div class="about-text">
-                <h2>About <span class="gradient-text">Lucid Algorithms</span></h2>
-                <p>Founded in January 2025, Lucid Algorithms has quickly become a trusted AI-powered trading platform, serving over 1,200 active traders worldwide. Our mission is to democratize access to sophisticated trading algorithms that were once only available to institutional investors.</p>
+                <h2>About <span class="gradient-text">Algon Flow</span></h2>
+                <p>Founded in 2021, Algon Flow has quickly become a leading AI-powered trading platform, serving over 50,000 active traders worldwide. Our mission is to democratize access to sophisticated trading algorithms that were once only available to institutional investors.</p>
                 <p>Our team consists of experienced quantitative analysts, software engineers, and financial experts who have worked at top investment banks and hedge funds. We combine cutting-edge machine learning with proven trading strategies to deliver consistent returns for our users.</p>
-                <div class="about-stats">
-                    <div class="about-stat">
-                        <div class="number">1,200+</div>
-                        <div class="label">Active Users</div>
-                    </div>
-                    <div class="about-stat">
-                        <div class="number">$15M+</div>
-                        <div class="label">Volume Traded</div>
-                    </div>
-                    <div class="about-stat">
-                        <div class="number">99.9%</div>
-                        <div class="label">Uptime</div>
-                    </div>
-                </div>
+                <div class="about-stats"><div class="about-stat"><div class="number">50K+</div><div class="label">Active Users</div></div><div class="about-stat"><div class="number">$2.5B+</div><div class="label">Volume Traded</div></div><div class="about-stat"><div class="number">99.9%</div><div class="label">Uptime</div></div></div>
             </div>
             <div class="about-text">
                 <h2>Our <span class="gradient-text">Technology</span></h2>
-                <p>Lucid Algorithms uses a proprietary AI engine that combines:</p>
-                <p>🔹 <strong>Deep Learning Models</strong> - Neural networks that predict price movements<br>
-                🔹 <strong>Natural Language Processing</strong> - Analyzing news sentiment in real-time<br>
-                🔹 <strong>Reinforcement Learning</strong> - Continuously improving trading strategies<br>
-                🔹 <strong>High-Frequency Data Analysis</strong> - Processing millions of data points per second</p>
-                <p>Our AI system has been backtested on years of market data, demonstrating consistent profitability across various market conditions.</p>
+                <p>Algon Flow uses a proprietary AI engine that combines:</p>
+                <p>🔹 <strong>Deep Learning Models</strong> - Neural networks that predict price movements<br>🔹 <strong>Natural Language Processing</strong> - Analyzing news sentiment in real-time<br>🔹 <strong>Reinforcement Learning</strong> - Continuously improving trading strategies<br>🔹 <strong>High-Frequency Data Analysis</strong> - Processing millions of data points per second</p>
+                <p>Our AI system has been backtested on 5+ years of market data, demonstrating consistent profitability across various market conditions.</p>
             </div>
         </div>
     </section>
 
     <div class="footer">
-        <div class="footer-content">
-            <div class="footer-section">
-                <h4>Lucid Algorithms</h4>
-                <p>AI-powered trading platform launched January 2025.</p>
-                <p>1,200+ active traders worldwide.</p>
-            </div>
-            <div class="footer-section">
-                <h4>Quick Links</h4>
-                <a href="index.html">Home</a>
-                <a href="register.html">Register</a>
-                <a href="terms.html"></a>
-                <a href="privacy.html"></a>
-            </div>
-            <div class="footer-section">
-                <h4>Contact</h4>
-                <p><i class="fas fa-envelope"></i> support@lucidalgorithms.com</p>
-                <p><i class="fas fa-globe"></i> lucidalgorithms.onrender.com</p>
-            </div>
-        </div>
-        <div class="footer-bottom">
-            <p>&copy; 2025 Lucid Algorithms. All rights reserved. | <a href="terms.html">Terms</a> | <a href="privacy.html">Privacy</a></p>
-            <p style="margin-top: 8px; font-size: 11px;">Trading involves risk. Past performance does not guarantee future results.</p>
-        </div>
+        <p>&copy; 2024 Algon Flow Market. All rights reserved. | <a href="terms.html" style="color:#2dd4bf;">Terms</a> | <a href="privacy.html" style="color:#2dd4bf;">Privacy</a></p>
+        <p style="margin-top: 10px; font-size: 12px;">Trading involves risk. Past performance does not guarantee future results.</p>
     </div>
 
     <div id="loginModal" class="modal">
         <div class="modal-content">
-            <span class="modal-close" onclick="closeModals()">&times;</span>
+            <span class="modal-close" onclick="closeModals()" style="float: right; font-size: 28px; cursor: pointer;">&times;</span>
             <h2>Welcome Back</h2>
             <div id="loginError" class="error-message"></div>
             <input type="email" id="loginEmail" placeholder="Email Address">
             <input type="password" id="loginPassword" placeholder="Password">
             <button onclick="handleLogin()">Sign In</button>
-            <div style="margin-top:15px; text-align:center; font-size:13px;">Don't have an account? <a href="register.html" style="color:#999;">Create Account</a></div>
+            <div style="margin-top:15px; text-align:center;">Don't have an account? <a href="register.html" style="color:#2dd4bf;">Create Account</a></div>
         </div>
     </div>
 
     <script>
-        const API_URL = 'https://lucidalgorithms.onrender.com';
+        // HARDCODED RENDER BACKEND URL
+        const API_URL = 'https://algon-flow-market.onrender.com';
 
         async function fetchBTCPrice() {
             try {
@@ -746,11 +518,7 @@
                 document.getElementById('high24h').innerHTML = `$${parseFloat(data.highPrice).toLocaleString()}`;
                 document.getElementById('low24h').innerHTML = `$${parseFloat(data.lowPrice).toLocaleString()}`;
                 document.getElementById('volume').innerHTML = `$${(parseFloat(data.quoteVolume) / 1000000).toFixed(2)}M`;
-            } catch(e) { 
-                document.getElementById('btcPrice').innerHTML = '$96,500'; 
-                document.getElementById('btcChange').innerHTML = '▲ 2.4%';
-                document.getElementById('btcChange').className = 'price-change positive';
-            }
+            } catch(e) { document.getElementById('btcPrice').innerHTML = '$68,500'; }
         }
         fetchBTCPrice();
         setInterval(fetchBTCPrice, 30000);

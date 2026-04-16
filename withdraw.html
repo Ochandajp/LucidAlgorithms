@@ -3,71 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Withdraw Funds | Lucid Algorithms</title>
+    <title>Withdraw Funds | Algon Flow</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-        body { background: #0a0a0a; color: #e0e0e0; min-height: 100vh; }
-        .container { max-width: 500px; margin: 0 auto; padding: 70px 16px 40px; }
-        .withdraw-card { background: #111; border-radius: 20px; border: 1px solid #333; padding: 24px; }
-        .withdraw-card h1 { font-size: 24px; margin-bottom: 8px; text-align: center; color: #ccc; }
-        .subtitle { text-align: center; color: #888; margin-bottom: 25px; font-size: 13px; }
-        .balance-display { background: linear-gradient(135deg, #1a1a1a, #111); border-radius: 14px; padding: 16px; text-align: center; margin-bottom: 20px; border: 1px solid #333; }
-        .balance-label { font-size: 12px; color: #888; }
-        .balance-amount { font-size: 32px; font-weight: 800; color: #aaa; }
-        .demo-warning { background: rgba(191,191,111,0.15); border: 1px solid #bfbf6f; border-radius: 12px; padding: 12px; margin-bottom: 20px; text-align: center; display: none; }
-        .demo-warning i { font-size: 24px; color: #bfbf6f; margin-bottom: 8px; }
-        .demo-warning p { color: #bfbf6f; font-size: 12px; }
-        .input-group { margin: 16px 0; }
-        .input-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 12px; }
-        .input-group input, .input-group select { width: 100%; padding: 12px; background: #2a2a2a; border: 1px solid #444; border-radius: 10px; color: white; font-size: 14px; }
-        .preset-amounts { display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
-        .preset-btn { background: #2a2a2a; border: 1px solid #444; padding: 6px 14px; border-radius: 25px; color: #ccc; cursor: pointer; transition: 0.2s; font-size: 12px; }
-        .preset-btn:hover { border-color: #888; color: white; }
-        .withdraw-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #bf6f6f, #8f4a4a); border: none; border-radius: 10px; color: white; font-weight: 700; font-size: 16px; cursor: pointer; margin-top: 16px; }
+        body { background: #0a0e17; color: #e0e3eb; min-height: 100vh; }
+        .container { max-width: 500px; margin: 0 auto; padding: 80px 20px 40px; }
+        .withdraw-card { background: #0f1322; border-radius: 24px; border: 1px solid rgba(45,212,191,0.3); padding: 30px; }
+        .withdraw-card h1 { font-size: 28px; margin-bottom: 10px; text-align: center; }
+        .subtitle { text-align: center; color: #8a92b0; margin-bottom: 30px; }
+        .balance-display { background: linear-gradient(135deg, #1a1f30, #0f1322); border-radius: 16px; padding: 20px; text-align: center; margin-bottom: 25px; border: 1px solid rgba(45,212,191,0.2); }
+        .balance-label { font-size: 14px; color: #8a92b0; }
+        .balance-amount { font-size: 36px; font-weight: 800; color: #2dd4bf; }
+        .input-group { margin: 20px 0; }
+        .input-group label { display: block; margin-bottom: 8px; font-weight: 600; }
+        .input-group input, .input-group select { width: 100%; padding: 14px; background: #1a1f30; border: 1px solid #2d3748; border-radius: 12px; color: white; font-size: 16px; }
+        .preset-amounts { display: flex; gap: 10px; margin: 15px 0; flex-wrap: wrap; }
+        .preset-btn { background: #1a1f30; border: 1px solid #2d3748; padding: 8px 16px; border-radius: 30px; color: white; cursor: pointer; transition: 0.2s; }
+        .preset-btn:hover { border-color: #2dd4bf; color: #2dd4bf; }
+        .withdraw-btn { width: 100%; padding: 16px; background: linear-gradient(135deg, #ff6b6b, #ff4757); border: none; border-radius: 12px; color: white; font-weight: 700; font-size: 18px; cursor: pointer; margin-top: 20px; }
         .withdraw-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .info-box { background: rgba(100,100,100,0.1); border-radius: 10px; padding: 12px; margin-top: 16px; font-size: 11px; color: #888; }
-        .back-link { display: block; text-align: center; margin-top: 16px; color: #999; text-decoration: none; font-size: 13px; }
-        .fee-info { display: flex; justify-content: space-between; margin-top: 8px; font-size: 11px; color: #888; }
-        .processing-time { background: rgba(111,191,111,0.1); border-radius: 10px; padding: 12px; margin-top: 16px; text-align: center; border: 1px solid #6fbf6f; }
-        .processing-time i { color: #6fbf6f; margin-right: 5px; }
-        .processing-time span { color: #6fbf6f; font-weight: bold; }
-        
-        /* Modal Styles */
-        .withdraw-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.95);
-            z-index: 10000;
-            display: none;
-            justify-content: center;
-            align-items: center;
-        }
-        .withdraw-modal.active { display: flex; }
-        .withdraw-modal-content {
-            background: #1a1a1a;
-            border-radius: 20px;
-            padding: 25px;
-            width: 400px;
-            max-width: 90%;
-            border: 1px solid #888;
-            text-align: center;
-        }
-        .withdraw-modal-icon { font-size: 60px; margin-bottom: 15px; }
-        .withdraw-modal-icon.success { color: #6fbf6f; }
-        .withdraw-modal-icon.warning { color: #bfbf6f; }
-        .withdraw-modal-icon.error { color: #bf6f6f; }
-        .withdraw-modal-title { font-size: 20px; font-weight: 700; margin-bottom: 10px; color: #ccc; }
-        .withdraw-modal-message { font-size: 13px; color: #888; margin-bottom: 20px; line-height: 1.5; }
-        .withdraw-modal-details { background: #2a2a2a; border-radius: 12px; padding: 15px; margin: 15px 0; text-align: left; }
-        .withdraw-modal-details p { margin: 5px 0; font-size: 12px; color: #ccc; }
-        .withdraw-modal-buttons { display: flex; gap: 10px; }
-        .withdraw-modal-btn { flex: 1; padding: 12px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 14px; transition: 0.2s; }
-        .withdraw-modal-btn.primary { background: linear-gradient(135deg, #666, #444); color: white; }
-        .withdraw-modal-btn.secondary { background: #2a2a2a; color: #ccc; }
+        .info-box { background: rgba(45,212,191,0.1); border-radius: 12px; padding: 15px; margin-top: 20px; font-size: 12px; color: #8a92b0; }
+        .back-link { display: block; text-align: center; margin-top: 20px; color: #2dd4bf; text-decoration: none; }
+        .fee-info { display: flex; justify-content: space-between; margin-top: 10px; font-size: 12px; color: #8a92b0; }
     </style>
 </head>
 <body>
@@ -76,13 +34,8 @@
         <h1><i class="fas fa-minus-circle"></i> Withdraw Funds</h1>
         <p class="subtitle">Withdraw your earnings in USDT (2% fee)</p>
         
-        <div id="demoWarning" class="demo-warning">
-            <i class="fas fa-gamepad"></i>
-            <p><strong>Demo Mode Active</strong><br>Withdrawals are not available on demo accounts. Switch to REAL account to withdraw funds.</p>
-        </div>
-        
         <div class="balance-display">
-            <div class="balance-label">Available Balance (Real Account)</div>
+            <div class="balance-label">Available Balance</div>
             <div class="balance-amount">$<span id="availableBalance">0</span></div>
         </div>
         
@@ -127,36 +80,18 @@
         
         <button class="withdraw-btn" id="withdrawBtn"><i class="fas fa-paper-plane"></i> Request Withdrawal</button>
         
-        <div class="processing-time">
-            <i class="fas fa-clock"></i> Processing Time: <span>15-25 minutes</span> after approval
-        </div>
-        
         <div class="info-box">
+            <i class="fas fa-clock"></i> Withdrawals are processed within 24-48 hours after admin approval.<br>
             <i class="fas fa-percent"></i> A 2% fee applies to all withdrawals.<br>
-            <i class="fas fa-shield-alt"></i> For security, withdrawals require email verification.<br>
-            <i class="fas fa-bolt"></i> Fast processing - typically completed within 15-25 minutes.
+            <i class="fas fa-shield-alt"></i> For security, withdrawals require email verification.
         </div>
         
         <a href="dashboard.html" class="back-link"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
     </div>
 </div>
 
-<!-- Modal -->
-<div id="withdrawModal" class="withdraw-modal">
-    <div class="withdraw-modal-content">
-        <div id="modalIcon" class="withdraw-modal-icon"></div>
-        <div id="modalTitle" class="withdraw-modal-title"></div>
-        <div id="modalMessage" class="withdraw-modal-message"></div>
-        <div id="modalDetails" class="withdraw-modal-details" style="display: none;"></div>
-        <div class="withdraw-modal-buttons">
-            <button id="modalConfirmBtn" class="withdraw-modal-btn primary">Confirm</button>
-            <button id="modalCancelBtn" class="withdraw-modal-btn secondary">Cancel</button>
-        </div>
-    </div>
-</div>
-
 <script>
-    const API_URL = 'https://lucidalgorithms.onrender.com';
+    const API_URL = 'https://algon-flow-market.onrender.com';
     
     const token = localStorage.getItem('token');
     const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -164,45 +99,6 @@
     if (!token) window.location.href = 'index.html';
     
     let currentBalance = 0;
-    
-    function showModal(options) {
-        const modal = document.getElementById('withdrawModal');
-        const icon = document.getElementById('modalIcon');
-        const title = document.getElementById('modalTitle');
-        const message = document.getElementById('modalMessage');
-        const details = document.getElementById('modalDetails');
-        const confirmBtn = document.getElementById('modalConfirmBtn');
-        const cancelBtn = document.getElementById('modalCancelBtn');
-        
-        icon.className = `withdraw-modal-icon ${options.type || 'success'}`;
-        if (options.type === 'success') icon.innerHTML = '<i class="fas fa-check-circle"></i>';
-        else if (options.type === 'warning') icon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
-        else if (options.type === 'error') icon.innerHTML = '<i class="fas fa-times-circle"></i>';
-        else icon.innerHTML = '<i class="fas fa-info-circle"></i>';
-        
-        title.innerHTML = options.title || 'Withdrawal';
-        message.innerHTML = options.message || '';
-        
-        if (options.details) {
-            details.style.display = 'block';
-            details.innerHTML = options.details;
-        } else {
-            details.style.display = 'none';
-        }
-        
-        confirmBtn.innerHTML = options.confirmText || 'Confirm';
-        confirmBtn.onclick = () => {
-            modal.classList.remove('active');
-            if (options.onConfirm) options.onConfirm();
-        };
-        
-        cancelBtn.onclick = () => {
-            modal.classList.remove('active');
-            if (options.onCancel) options.onCancel();
-        };
-        
-        modal.classList.add('active');
-    }
     
     async function loadBalance() {
         try {
@@ -227,7 +123,7 @@
     
     document.querySelectorAll('.preset-btn').forEach(btn => {
         btn.onclick = () => {
-            const amount = parseFloat(btn.dataset.amount);
+            const amount = btn.dataset.amount;
             document.getElementById('withdrawAmount').value = amount;
             const fee = amount * 0.02;
             const netAmount = amount - fee;
@@ -243,124 +139,62 @@
         const confirmEmail = document.getElementById('confirmEmail').value;
         
         if (!amount || amount < 50) {
-            showModal({
-                type: 'warning',
-                title: 'Minimum Amount',
-                message: 'Minimum withdrawal amount is $50 USD',
-                confirmText: 'OK'
-            });
+            alert('⚠️ Minimum withdrawal amount is $50 USD');
             return;
         }
         
         if (amount > currentBalance) {
-            showModal({
-                type: 'error',
-                title: 'Insufficient Balance',
-                message: `Your balance is $${currentBalance.toFixed(2)}. Please enter a lower amount.`,
-                confirmText: 'OK'
-            });
+            alert('❌ Insufficient balance');
             return;
         }
         
         if (!address) {
-            showModal({
-                type: 'warning',
-                title: 'Wallet Address Required',
-                message: 'Please enter your USDT wallet address',
-                confirmText: 'OK'
-            });
+            alert('⚠️ Please enter your wallet address');
             return;
         }
         
         if (!confirmEmail) {
-            showModal({
-                type: 'warning',
-                title: 'Email Required',
-                message: 'Please enter your email for confirmation',
-                confirmText: 'OK'
-            });
+            alert('⚠️ Please enter your email for confirmation');
             return;
         }
         
         if (confirmEmail !== user.email) {
-            showModal({
-                type: 'error',
-                title: 'Email Mismatch',
-                message: 'Email does not match your registered email',
-                confirmText: 'OK'
-            });
+            alert('❌ Email does not match your registered email');
             return;
         }
         
         const fee = amount * 0.02;
         const netAmount = amount - fee;
         
-        // Show confirmation modal
-        showModal({
-            type: 'warning',
-            title: 'Confirm Withdrawal',
-            message: 'Please review your withdrawal details carefully.',
-            details: `
-                <p><strong>💰 Amount:</strong> $${amount.toFixed(2)}</p>
-                <p><strong>📊 Fee (2%):</strong> $${fee.toFixed(2)}</p>
-                <p><strong>💸 You Receive:</strong> $${netAmount.toFixed(2)}</p>
-                <p><strong>🌐 Network:</strong> ${network}</p>
-                <p><strong>📍 Address:</strong> ${address.substring(0, 15)}...</p>
-                <p><strong>⏱️ Processing:</strong> 15-25 minutes after approval</p>
-            `,
-            confirmText: 'Confirm Withdrawal',
-            onConfirm: async () => {
-                const withdrawBtn = document.getElementById('withdrawBtn');
-                withdrawBtn.disabled = true;
-                withdrawBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Processing...';
-                
-                try {
-                    const response = await fetch(`${API_URL}/api/withdrawal/request`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                        body: JSON.stringify({ amount, network, address })
-                    });
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        showModal({
-                            type: 'success',
-                            title: 'Withdrawal Request Submitted!',
-                            message: 'Your withdrawal has been submitted successfully.',
-                            details: `
-                                <p><strong>💰 Amount:</strong> $${amount.toFixed(2)}</p>
-                                <p><strong>📊 Fee:</strong> $${data.feeAmount.toFixed(2)}</p>
-                                <p><strong>💸 Net Amount:</strong> $${data.netAmount.toFixed(2)}</p>
-                                <p><strong>⏱️ Processing Time:</strong> 15-25 minutes</p>
-                                <p><strong>✅ Status:</strong> Pending Admin Approval</p>
-                            `,
-                            confirmText: 'Return to Dashboard',
-                            onConfirm: () => {
-                                window.location.href = 'dashboard.html';
-                            }
-                        });
-                    } else {
-                        showModal({
-                            type: 'error',
-                            title: 'Withdrawal Failed',
-                            message: data.error || 'Failed to process withdrawal',
-                            confirmText: 'OK'
-                        });
-                        loadBalance();
-                    }
-                } catch (error) {
-                    showModal({
-                        type: 'error',
-                        title: 'Connection Error',
-                        message: 'Error processing withdrawal. Please try again.',
-                        confirmText: 'OK'
-                    });
-                } finally {
-                    withdrawBtn.disabled = false;
-                    withdrawBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Request Withdrawal';
-                }
+        if (!confirm(`📤 Withdrawal Request Summary:\n\nAmount: $${amount}\nFee (2%): $${fee.toFixed(2)}\nYou Receive: $${netAmount.toFixed(2)}\nNetwork: ${network}\nAddress: ${address.substring(0, 15)}...\n\nProcessing time: 24-48 hours\n\nConfirm withdrawal request?`)) {
+            return;
+        }
+        
+        const withdrawBtn = document.getElementById('withdrawBtn');
+        withdrawBtn.disabled = true;
+        withdrawBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Processing...';
+        
+        try {
+            const response = await fetch(`${API_URL}/api/withdrawal/request`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ amount, network, address })
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                alert(`✅ Withdrawal request submitted successfully!\n\nAmount: $${amount}\nFee: $${data.feeAmount.toFixed(2)}\nNet Amount: $${data.netAmount.toFixed(2)}\nNetwork: ${network}\n\nYour request will be processed within 24-48 hours.`);
+                window.location.href = 'dashboard.html';
+            } else {
+                alert('❌ ' + (data.error || 'Withdrawal failed'));
+                loadBalance();
             }
-        });
+        } catch (error) {
+            alert('❌ Error processing withdrawal. Please try again.');
+        } finally {
+            withdrawBtn.disabled = false;
+            withdrawBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Request Withdrawal';
+        }
     };
     
     loadBalance();
