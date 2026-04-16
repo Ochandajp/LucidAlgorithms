@@ -20,7 +20,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// MongoDB Connection - UPDATED
+// MongoDB Connection
 const MONGODB_URI = 'mongodb+srv://LucidAlgorithm:Lucid@cluster0.kcqdr6j.mongodb.net/lucidalgorithms?retryWrites=true&w=majority';
 
 mongoose.connect(MONGODB_URI)
@@ -40,7 +40,7 @@ const userSchema = new mongoose.Schema({
     tradingExperience: { type: String, enum: ['Beginner', 'Intermediate', 'Expert'], required: true },
     fundsSource: { type: String, enum: ['Personal Savings', 'Business Revenue', 'Inheritance or Gift', 'Loan Proceeds', 'Investment from Partners/Investors', 'Sale of Assets'], required: true },
     balance: { type: Number, default: 0 },
-    demoBalance: { type: Number, default: 10000 }, // NEW: Demo account starts with $10,000
+    demoBalance: { type: Number, default: 10000 },
     totalDeposits: { type: Number, default: 0 },
     totalProfit: { type: Number, default: 0 },
     totalLoss: { type: Number, default: 0 },
@@ -60,7 +60,7 @@ const userSchema = new mongoose.Schema({
 
 const tradeSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    isDemo: { type: Boolean, default: false }, // NEW: Track if trade is on demo account
+    isDemo: { type: Boolean, default: false },
     symbol: { type: String, required: true },
     symbolName: { type: String, required: true },
     category: { type: String, required: true },
@@ -106,10 +106,26 @@ const withdrawalSchema = new mongoose.Schema({
     processedBy: { type: String }
 });
 
+const depositRequestSchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    userName: { type: String, required: true },
+    userEmail: { type: String, required: true },
+    amount: { type: Number, required: true, min: 80 },
+    crypto: { type: String, default: '' },
+    network: { type: String, default: '' },
+    walletAddress: { type: String, default: '' },
+    status: { type: String, enum: ['pending', 'completed', 'rejected'], default: 'pending' },
+    transactionId: { type: String, unique: true },
+    createdAt: { type: Date, default: Date.now },
+    processedAt: { type: Date },
+    processedBy: { type: String }
+});
+
 const User = mongoose.model('User', userSchema);
 const Trade = mongoose.model('Trade', tradeSchema);
 const Transaction = mongoose.model('Transaction', transactionSchema);
 const Withdrawal = mongoose.model('Withdrawal', withdrawalSchema);
+const DepositRequest = mongoose.model('DepositRequest', depositRequestSchema);
 
 // ============= MIDDLEWARE =============
 const authenticateToken = (req, res, next) => {
@@ -166,7 +182,7 @@ app.post('/api/register', async (req, res) => {
             isFromUSA: isFromUSA || 'no',
             expectedDeposit: expectedDeposit || '',
             balance: 0,
-            demoBalance: 10000, // Demo starts with $10,000
+            demoBalance: 10000,
             isAdmin: email === 'admin@lucidalgorithms.com'
         });
         
@@ -210,7 +226,7 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// ============= DEMO/REAL ACCOUNT ROUTES =============
+// ============= USER PROFILE =============
 app.get('/api/user/balance', authenticateToken, async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
@@ -220,6 +236,29 @@ app.get('/api/user/balance', authenticateToken, async (req, res) => {
         });
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch balance' });
+    }
+});
+
+app.get('/api/user/profile', authenticateToken, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select('-password');
+        const activeTrades = await Trade.find({ userId: req.user.id, status: 'active' }).sort({ startedAt: -1 });
+        const tradeHistory = await Trade.find({ userId: req.user.id, status: 'completed' }).sort({ endedAt: -1 }).limit(50);
+        const withdrawalHistory = await Withdrawal.find({ userId: req.user.id }).sort({ createdAt: -1 }).limit(20);
+        
+        const totalInvested = tradeHistory.reduce((sum, t) => sum + t.amount, 0);
+        const totalProfit = tradeHistory.reduce((sum, t) => sum + (t.profit || 0), 0);
+        const roi = totalInvested > 0 ? (totalProfit / totalInvested) * 100 : 0;
+        
+        res.json({
+            user,
+            activeTrades,
+            tradeHistory,
+            withdrawalHistory,
+            roi: roi.toFixed(2)
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch profile' });
     }
 });
 
@@ -284,6 +323,7 @@ app.get('/api/ai/get-passkey', authenticateToken, async (req, res) => {
     }
 });
 
+// ============= MARKET ANALYSIS =============
 function analyzeMarket(symbol, currentPrice, change24h, volume, volatility) {
     const analysis = {
         decision: null,
@@ -362,7 +402,6 @@ async function updateActiveTrades() {
             if (user) {
                 const amountToReturn = trade.amount + profit;
                 
-                // Update appropriate balance based on demo/real
                 if (trade.isDemo) {
                     user.demoBalance = user.demoBalance + amountToReturn;
                 } else {
@@ -416,7 +455,6 @@ app.post('/api/ai/start-trade', authenticateToken, async (req, res) => {
             return res.status(400).json({ error: 'Minimum AI trade amount is $115 USD' });
         }
         
-        // Check appropriate balance based on demo/real
         const currentBalance = isDemo ? user.demoBalance : user.balance;
         if (amount > currentBalance) {
             return res.status(400).json({ error: `Insufficient ${isDemo ? 'demo' : 'real'} balance` });
@@ -447,7 +485,6 @@ app.post('/api/ai/start-trade', authenticateToken, async (req, res) => {
         const analysis = analyzeMarket(symbol, currentPrice, change24h, volume, volatility);
         const side = analysis.decision;
         
-        // Deduct from appropriate balance
         if (isDemo) {
             user.demoBalance = user.demoBalance - amount;
         } else {
@@ -506,29 +543,6 @@ app.post('/api/ai/start-trade', authenticateToken, async (req, res) => {
     }
 });
 
-app.get('/api/user/profile', authenticateToken, async (req, res) => {
-    try {
-        const user = await User.findById(req.user.id).select('-password');
-        const activeTrades = await Trade.find({ userId: req.user.id, status: 'active' }).sort({ startedAt: -1 });
-        const tradeHistory = await Trade.find({ userId: req.user.id, status: 'completed' }).sort({ endedAt: -1 }).limit(50);
-        const withdrawalHistory = await Withdrawal.find({ userId: req.user.id }).sort({ createdAt: -1 }).limit(20);
-        
-        const totalInvested = tradeHistory.reduce((sum, t) => sum + t.amount, 0);
-        const totalProfit = tradeHistory.reduce((sum, t) => sum + (t.profit || 0), 0);
-        const roi = totalInvested > 0 ? (totalProfit / totalInvested) * 100 : 0;
-        
-        res.json({
-            user,
-            activeTrades,
-            tradeHistory,
-            withdrawalHistory,
-            roi: roi.toFixed(2)
-        });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch profile' });
-    }
-});
-
 app.post('/api/ai/stop-trade/:tradeId', authenticateToken, async (req, res) => {
     try {
         const trade = await Trade.findOne({ _id: req.params.tradeId, userId: req.user.id, status: 'active' });
@@ -562,48 +576,145 @@ app.post('/api/ai/stop-trade/:tradeId', authenticateToken, async (req, res) => {
     }
 });
 
-// ============= DEPOSIT ROUTES =============
-app.post('/api/deposit/create', authenticateToken, async (req, res) => {
+// ============= DEPOSIT REQUEST ROUTES =============
+
+// User submits deposit request
+app.post('/api/deposit/request', authenticateToken, async (req, res) => {
     try {
-        const { amount } = req.body;
+        const { amount, email, network, crypto, walletAddress } = req.body;
         const user = await User.findById(req.user.id);
         
-        if (amount < 60) {
-            return res.status(400).json({ error: 'Minimum deposit is $60 USD' });
+        if (amount < 80) {
+            return res.status(400).json({ error: 'Minimum deposit is $80 USD' });
         }
         
-        const paymentId = 'DEP_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
+        const depositId = 'DEP_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
         
+        const depositRequest = new DepositRequest({
+            userId: user._id,
+            userName: user.fullName,
+            userEmail: user.email,
+            amount: amount,
+            crypto: crypto || '',
+            network: network || '',
+            walletAddress: walletAddress || '',
+            transactionId: depositId,
+            status: 'pending'
+        });
+        
+        await depositRequest.save();
+        
+        res.json({
+            success: true,
+            depositId: depositRequest._id,
+            message: 'Deposit request submitted. Admin will approve shortly.'
+        });
+        
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to create deposit request' });
+    }
+});
+
+// Check deposit status
+app.get('/api/deposit/status/:depositId', authenticateToken, async (req, res) => {
+    try {
+        const deposit = await DepositRequest.findOne({ _id: req.params.depositId, userId: req.user.id });
+        if (!deposit) {
+            return res.status(404).json({ error: 'Deposit request not found' });
+        }
+        
+        res.json({
+            status: deposit.status,
+            amount: deposit.amount,
+            createdAt: deposit.createdAt
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to check deposit status' });
+    }
+});
+
+// ADMIN: Get all deposit requests
+app.get('/api/admin/deposit-requests', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const deposits = await DepositRequest.find().sort({ createdAt: -1 });
+        res.json(deposits);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch deposit requests' });
+    }
+});
+
+// ADMIN: Approve deposit request
+app.post('/api/admin/deposit-requests/:depositId/approve', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const deposit = await DepositRequest.findById(req.params.depositId);
+        if (!deposit) {
+            return res.status(404).json({ error: 'Deposit request not found' });
+        }
+        
+        if (deposit.status !== 'pending') {
+            return res.status(400).json({ error: 'Deposit already processed' });
+        }
+        
+        const user = await User.findById(deposit.userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        // Add balance to user
+        user.balance = (user.balance || 0) + deposit.amount;
+        user.totalDeposits = (user.totalDeposits || 0) + deposit.amount;
+        await user.save();
+        
+        // Update deposit status
+        deposit.status = 'completed';
+        deposit.processedAt = new Date();
+        deposit.processedBy = req.user.email;
+        await deposit.save();
+        
+        // Create transaction record
         const transaction = new Transaction({
             userId: user._id,
             userName: user.fullName,
             type: 'deposit',
-            amount: amount,
-            status: 'pending',
-            transactionId: paymentId,
-            description: 'Crypto deposit via NOWPayments'
+            amount: deposit.amount,
+            status: 'completed',
+            transactionId: deposit.transactionId,
+            description: `Deposit approved by admin - $${deposit.amount} added via ${deposit.crypto} (${deposit.network})`,
+            adminName: req.user.email
         });
         await transaction.save();
         
-        res.json({
-            success: true,
-            paymentId: paymentId
-        });
+        res.json({ success: true, message: `$${deposit.amount} added to ${user.fullName}'s balance` });
+        
     } catch (error) {
-        res.status(500).json({ error: 'Failed to create deposit' });
+        console.error(error);
+        res.status(500).json({ error: 'Failed to approve deposit' });
     }
 });
 
-app.get('/api/deposit/check/:paymentId', authenticateToken, async (req, res) => {
+// ADMIN: Reject deposit request
+app.post('/api/admin/deposit-requests/:depositId/reject', authenticateToken, isAdmin, async (req, res) => {
     try {
-        const transaction = await Transaction.findOne({ transactionId: req.params.paymentId });
-        if (!transaction) {
-            return res.status(404).json({ error: 'Transaction not found' });
+        const deposit = await DepositRequest.findById(req.params.depositId);
+        if (!deposit) {
+            return res.status(404).json({ error: 'Deposit request not found' });
         }
         
-        res.json({ status: transaction.status });
+        if (deposit.status !== 'pending') {
+            return res.status(400).json({ error: 'Deposit already processed' });
+        }
+        
+        deposit.status = 'rejected';
+        deposit.processedAt = new Date();
+        deposit.processedBy = req.user.email;
+        await deposit.save();
+        
+        res.json({ success: true, message: 'Deposit request rejected' });
+        
     } catch (error) {
-        res.status(500).json({ error: 'Failed to check status' });
+        console.error(error);
+        res.status(500).json({ error: 'Failed to reject deposit' });
     }
 });
 
@@ -878,6 +989,7 @@ app.listen(PORT, async () => {
     console.log(`✅ CORS enabled for all origins`);
     console.log(`📱 Backend API available at: https://lucidalgorithms.onrender.com`);
     console.log(`💰 AI Profit set to 88% of stake`);
-    console.log(`🎮 Demo accounts start with $10,000`);
+    console.log(`🎮 Demo accounts start with $10,000, max cap $15,000`);
+    console.log(`💵 Minimum deposit: $80 USD`);
     console.log(`⏱️ Trades ONLY complete when duration time has fully elapsed`);
 });

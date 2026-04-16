@@ -19,7 +19,6 @@
             overflow-x: hidden;
         }
 
-        /* Grey/Black Theme */
         .bg-animation {
             position: fixed;
             top: 0;
@@ -190,20 +189,41 @@
 
         .hero-stats {
             display: flex;
-            gap: 30px;
+            gap: 40px;
             margin-bottom: 35px;
             flex-wrap: wrap;
         }
 
+        .stat {
+            text-align: center;
+            background: rgba(30,30,40,0.5);
+            padding: 15px 25px;
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(100,100,100,0.2);
+            min-width: 140px;
+        }
+
         .stat-number {
-            font-size: 32px;
+            font-size: 36px;
             font-weight: 800;
-            color: #aaa;
+            color: #ccc;
         }
 
         .stat-label {
             font-size: 13px;
-            color: #777;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .since-badge {
+            display: inline-block;
+            background: rgba(100,100,100,0.2);
+            padding: 5px 15px;
+            border-radius: 30px;
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 20px;
         }
 
         .hero-right {
@@ -218,7 +238,7 @@
             width: 100%;
             border-radius: 16px;
             background: linear-gradient(135deg, #2a2a2a, #1a1a1a);
-            padding: 20px;
+            padding: 30px;
             text-align: center;
         }
 
@@ -229,8 +249,9 @@
         }
 
         .hero-image h3 {
-            color: #aaa;
+            color: #ccc;
             margin-bottom: 10px;
+            font-size: 20px;
         }
 
         .hero-image p {
@@ -279,13 +300,13 @@
 
         .section-title {
             text-align: center;
-            font-size: 32px;
-            margin-bottom: 40px;
+            font-size: 36px;
+            margin-bottom: 50px;
             color: #ccc;
         }
 
         @media (max-width: 768px) {
-            .section-title { font-size: 26px; }
+            .section-title { font-size: 28px; margin-bottom: 30px; }
         }
 
         .features-grid {
@@ -298,7 +319,7 @@
             background: rgba(20,20,30,0.7);
             backdrop-filter: blur(10px);
             border-radius: 20px;
-            padding: 25px;
+            padding: 30px 25px;
             text-align: center;
             border: 1px solid rgba(100,100,100,0.2);
             transition: 0.3s;
@@ -310,28 +331,28 @@
         }
 
         .feature-icon {
-            width: 60px;
-            height: 60px;
+            width: 70px;
+            height: 70px;
             background: rgba(100,100,100,0.2);
-            border-radius: 16px;
+            border-radius: 18px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 18px;
-            font-size: 28px;
+            margin: 0 auto 20px;
+            font-size: 32px;
             color: #aaa;
         }
 
         .feature-card h3 {
             margin-bottom: 12px;
-            font-size: 18px;
+            font-size: 20px;
             color: #ccc;
         }
 
         .feature-card p {
             color: #888;
-            line-height: 1.5;
-            font-size: 13px;
+            line-height: 1.6;
+            font-size: 14px;
         }
 
         .about-section {
@@ -358,38 +379,48 @@
         }
 
         .about-text h2 {
-            font-size: 32px;
+            font-size: 36px;
             margin-bottom: 20px;
             color: #ccc;
         }
 
         @media (max-width: 768px) {
-            .about-text h2 { font-size: 26px; }
+            .about-text h2 { font-size: 28px; }
         }
 
         .about-text p {
             color: #888;
-            line-height: 1.7;
-            margin-bottom: 18px;
-            font-size: 14px;
+            line-height: 1.8;
+            margin-bottom: 20px;
+            font-size: 15px;
         }
 
         .about-stats {
             display: flex;
-            gap: 25px;
-            margin-top: 25px;
+            gap: 30px;
+            margin-top: 30px;
             flex-wrap: wrap;
         }
 
+        .about-stat {
+            text-align: center;
+            background: rgba(30,30,40,0.5);
+            padding: 15px 25px;
+            border-radius: 16px;
+            flex: 1;
+            min-width: 100px;
+        }
+
         .about-stat .number {
-            font-size: 28px;
+            font-size: 32px;
             font-weight: 800;
-            color: #aaa;
+            color: #ccc;
         }
 
         .about-stat .label {
             font-size: 12px;
             color: #777;
+            margin-top: 5px;
         }
 
         .modal {
@@ -412,7 +443,7 @@
         .modal-content {
             background: #1a1a1a;
             border-radius: 20px;
-            padding: 30px;
+            padding: 35px;
             width: 420px;
             max-width: 90%;
             border: 1px solid #555;
@@ -426,7 +457,7 @@
 
         .modal-content input {
             width: 100%;
-            padding: 12px;
+            padding: 12px 15px;
             margin: 10px 0;
             background: #2a2a2a;
             border: 1px solid #444;
@@ -468,18 +499,52 @@
             position: relative;
             z-index: 1;
             background: #111;
-            padding: 30px 50px;
+            padding: 40px 50px 30px;
             text-align: center;
             border-top: 1px solid rgba(100,100,100,0.2);
         }
 
-        .footer p {
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            text-align: left;
+            margin-bottom: 30px;
+        }
+
+        .footer-section h4 {
+            color: #aaa;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .footer-section p, .footer-section a {
             color: #777;
+            font-size: 13px;
+            line-height: 1.8;
+            text-decoration: none;
+            display: block;
+        }
+
+        .footer-section a:hover {
+            color: #aaa;
+        }
+
+        .footer-bottom {
+            border-top: 1px solid #2a2a2a;
+            padding-top: 20px;
+            text-align: center;
+        }
+
+        .footer-bottom p {
+            color: #666;
             font-size: 12px;
         }
 
-        .footer a {
-            color: #999;
+        .footer-bottom a {
+            color: #888;
             text-decoration: none;
         }
 
@@ -488,6 +553,11 @@
             font-size: 28px;
             cursor: pointer;
             color: #999;
+            transition: 0.2s;
+        }
+
+        .modal-close:hover {
+            color: #ccc;
         }
     </style>
 </head>
@@ -514,14 +584,26 @@
     <section class="hero">
         <div class="hero-content">
             <div class="hero-left">
-                <h1>Trade Crypto with <span class="gradient-text">AI-Powered</span> Intelligence</h1>
-                <p>Join 50,000+ traders using Lucid Algorithms' advanced AI algorithms. Our proprietary trading system uses machine learning to analyze market patterns and execute trades with up to 92% accuracy.</p>
-                <div class="hero-stats">
-                    <div class="stat"><div class="stat-number">50,000+</div><div class="stat-label">Active Traders</div></div>
-                    <div class="stat"><div class="stat-number">$2.5B+</div><div class="stat-label">Trading Volume</div></div>
-                    <div class="stat"><div class="stat-number">22%</div><div class="stat-label">Max Daily ROI</div></div>
+                <div class="since-badge">
+                    <i class="fas fa-calendar-alt"></i>
                 </div>
-                <button class="btn-signup" onclick="window.location.href='register.html'" style="font-size: 15px; padding: 12px 32px;">Start Trading Now →</button>
+                <h1>Trade Crypto with <span class="gradient-text">AI-Powered</span> Intelligence</h1>
+                <p>Join 1,200+ traders using Lucid Algorithms' advanced AI algorithms. Our proprietary trading system uses machine learning to analyze market patterns and execute trades with precision.</p>
+                <div class="hero-stats">
+                    <div class="stat">
+                        <div class="stat-number">1,200+</div>
+                        <div class="stat-label">Active Traders</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">$15M+</div>
+                        <div class="stat-label">Trading Volume</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">88%</div>
+                        <div class="stat-label">Max Profit Cap</div>
+                    </div>
+                </div>
+                <button class="btn-signup" onclick="window.location.href='register.html'" style="font-size: 16px; padding: 14px 35px;">Start Trading Now →</button>
             </div>
             <div class="hero-right">
                 <div class="hero-image">
@@ -546,12 +628,36 @@
     <section class="features-section">
         <h2 class="section-title">Why Choose <span class="gradient-text">Lucid Algorithms</span></h2>
         <div class="features-grid">
-            <div class="feature-card"><div class="feature-icon"><i class="fas fa-robot"></i></div><h3>AI-Powered Trading</h3><p>Our advanced AI algorithms analyze market trends in real-time, providing accurate trading signals and automated execution.</p></div>
-            <div class="feature-card"><div class="feature-icon"><i class="fas fa-shield-alt"></i></div><h3>Secure & Safe</h3><p>Bank-level security with 256-bit encryption, 2FA authentication, and cold storage for all digital assets.</p></div>
-            <div class="feature-card"><div class="feature-icon"><i class="fas fa-chart-line"></i></div><h3>High Returns</h3><p>Earn up to 22% daily returns with our AI-managed trading strategies. Minimum investment of just $115.</p></div>
-            <div class="feature-card"><div class="feature-icon"><i class="fas fa-clock"></i></div><h3>24/7 Support</h3><p>Our dedicated support team is available around the clock to assist you with any questions or issues.</p></div>
-            <div class="feature-card"><div class="feature-icon"><i class="fas fa-mobile-alt"></i></div><h3>Mobile Friendly</h3><p>Access your account and trade from anywhere using any device - desktop, tablet, or smartphone.</p></div>
-            <div class="feature-card"><div class="feature-icon"><i class="fas fa-coins"></i></div><h3>Multiple Assets</h3><p>Trade cryptocurrencies, commodities, and forex pairs all from a single platform.</p></div>
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-robot"></i></div>
+                <h3>AI-Powered Trading</h3>
+                <p>Our advanced AI algorithms analyze market trends in real-time, providing accurate trading signals and automated execution.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-shield-alt"></i></div>
+                <h3>Secure & Safe</h3>
+                <p>Bank-level security with 256-bit encryption, and cold storage for all digital assets.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
+                <h3>High Returns</h3>
+                <p>Earn up to 88% profit on successful trades with our AI-managed trading strategies.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-clock"></i></div>
+                <h3>24/7 Support</h3>
+                <p>Our dedicated support team is available around the clock to assist you with any questions.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-mobile-alt"></i></div>
+                <h3>Mobile Friendly</h3>
+                <p>Access your account and trade from anywhere using any device - desktop, tablet, or smartphone.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-coins"></i></div>
+                <h3>Multiple Assets</h3>
+                <p>Trade cryptocurrencies, commodities, and forex pairs all from a single platform.</p>
+            </div>
         </div>
     </section>
 
@@ -559,22 +665,59 @@
         <div class="about-content">
             <div class="about-text">
                 <h2>About <span class="gradient-text">Lucid Algorithms</span></h2>
-                <p>Founded in 2021, Lucid Algorithms has quickly become a leading AI-powered trading platform, serving over 50,000 active traders worldwide. Our mission is to democratize access to sophisticated trading algorithms that were once only available to institutional investors.</p>
+                <p>Founded in January 2025, Lucid Algorithms has quickly become a trusted AI-powered trading platform, serving over 1,200 active traders worldwide. Our mission is to democratize access to sophisticated trading algorithms that were once only available to institutional investors.</p>
                 <p>Our team consists of experienced quantitative analysts, software engineers, and financial experts who have worked at top investment banks and hedge funds. We combine cutting-edge machine learning with proven trading strategies to deliver consistent returns for our users.</p>
-                <div class="about-stats"><div class="about-stat"><div class="number">50K+</div><div class="label">Active Users</div></div><div class="about-stat"><div class="number">$2.5B+</div><div class="label">Volume Traded</div></div><div class="about-stat"><div class="number">99.9%</div><div class="label">Uptime</div></div></div>
+                <div class="about-stats">
+                    <div class="about-stat">
+                        <div class="number">1,200+</div>
+                        <div class="label">Active Users</div>
+                    </div>
+                    <div class="about-stat">
+                        <div class="number">$15M+</div>
+                        <div class="label">Volume Traded</div>
+                    </div>
+                    <div class="about-stat">
+                        <div class="number">99.9%</div>
+                        <div class="label">Uptime</div>
+                    </div>
+                </div>
             </div>
             <div class="about-text">
                 <h2>Our <span class="gradient-text">Technology</span></h2>
                 <p>Lucid Algorithms uses a proprietary AI engine that combines:</p>
-                <p>🔹 <strong>Deep Learning Models</strong> - Neural networks that predict price movements<br>🔹 <strong>Natural Language Processing</strong> - Analyzing news sentiment in real-time<br>🔹 <strong>Reinforcement Learning</strong> - Continuously improving trading strategies<br>🔹 <strong>High-Frequency Data Analysis</strong> - Processing millions of data points per second</p>
-                <p>Our AI system has been backtested on 5+ years of market data, demonstrating consistent profitability across various market conditions.</p>
+                <p>🔹 <strong>Deep Learning Models</strong> - Neural networks that predict price movements<br>
+                🔹 <strong>Natural Language Processing</strong> - Analyzing news sentiment in real-time<br>
+                🔹 <strong>Reinforcement Learning</strong> - Continuously improving trading strategies<br>
+                🔹 <strong>High-Frequency Data Analysis</strong> - Processing millions of data points per second</p>
+                <p>Our AI system has been backtested on years of market data, demonstrating consistent profitability across various market conditions.</p>
             </div>
         </div>
     </section>
 
     <div class="footer">
-        <p>&copy; 2024 Lucid Algorithms. All rights reserved. | <a href="terms.html">Terms</a> | <a href="privacy.html">Privacy</a></p>
-        <p style="margin-top: 8px; font-size: 11px;">Trading involves risk. Past performance does not guarantee future results.</p>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>Lucid Algorithms</h4>
+                <p>AI-powered trading platform launched January 2025.</p>
+                <p>1,200+ active traders worldwide.</p>
+            </div>
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <a href="index.html">Home</a>
+                <a href="register.html">Register</a>
+                <a href="terms.html"></a>
+                <a href="privacy.html"></a>
+            </div>
+            <div class="footer-section">
+                <h4>Contact</h4>
+                <p><i class="fas fa-envelope"></i> support@lucidalgorithms.com</p>
+                <p><i class="fas fa-globe"></i> lucidalgorithms.onrender.com</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 Lucid Algorithms. All rights reserved. | <a href="terms.html">Terms</a> | <a href="privacy.html">Privacy</a></p>
+            <p style="margin-top: 8px; font-size: 11px;">Trading involves risk. Past performance does not guarantee future results.</p>
+        </div>
     </div>
 
     <div id="loginModal" class="modal">
@@ -603,7 +746,11 @@
                 document.getElementById('high24h').innerHTML = `$${parseFloat(data.highPrice).toLocaleString()}`;
                 document.getElementById('low24h').innerHTML = `$${parseFloat(data.lowPrice).toLocaleString()}`;
                 document.getElementById('volume').innerHTML = `$${(parseFloat(data.quoteVolume) / 1000000).toFixed(2)}M`;
-            } catch(e) { document.getElementById('btcPrice').innerHTML = '$68,500'; }
+            } catch(e) { 
+                document.getElementById('btcPrice').innerHTML = '$96,500'; 
+                document.getElementById('btcChange').innerHTML = '▲ 2.4%';
+                document.getElementById('btcChange').className = 'price-change positive';
+            }
         }
         fetchBTCPrice();
         setInterval(fetchBTCPrice, 30000);

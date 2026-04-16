@@ -238,7 +238,7 @@
             color: #aaa;
         }
 
-        .users-section, .withdrawals-section, .transactions-section {
+        .users-section, .withdrawals-section, .transactions-section, .deposits-section {
             background: #111;
             border-radius: 16px;
             border: 1px solid #333;
@@ -459,6 +459,7 @@
                 <div class="nav-item" data-section="users"><i class="fas fa-users"></i> <span>Users Management</span></div>
                 <div class="nav-item" data-section="withdrawals"><i class="fas fa-money-bill-wave"></i> <span>Withdrawals</span></div>
                 <div class="nav-item" data-section="transactions"><i class="fas fa-history"></i> <span>Transactions</span></div>
+                <div class="nav-item" data-section="deposits"><i class="fas fa-plus-circle"></i> <span>Deposit Requests</span></div>
             </div>
         </div>
 
@@ -500,7 +501,9 @@
                     </div>
                     <div class="users-table">
                         <table>
-                            <thead><tr><th>User</th><th>Contact</th><th>Balance</th><th>Demo</th><th>Experience</th><th>Status</th><th>Actions</th></tr></thead>
+                            <thead>
+                                <tr><th>User</th><th>Contact</th><th>Balance</th><th>Demo</th><th>Experience</th><th>Status</th><th>Actions</th></tr>
+                            </thead>
                             <tbody id="usersList"><tr><td colspan="7"><div class="loading">Loading users...</div></td></tr></tbody>
                         </table>
                     </div>
@@ -515,7 +518,9 @@
                     </div>
                     <div class="users-table">
                         <table>
-                            <thead><tr><th>User</th><th>Amount</th><th>Fee</th><th>Network</th><th>Address</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+                            <thead>
+                                <tr><th>User</th><th>Amount</th><th>Fee</th><th>Network</th><th>Address</th><th>Status</th><th>Date</th><th>Actions</th></tr>
+                            </thead>
                             <tbody id="withdrawalsList"><tr><td colspan="8"><div class="loading">Loading withdrawals...</div></td></tr></tbody>
                         </table>
                     </div>
@@ -530,8 +535,27 @@
                     </div>
                     <div class="users-table">
                         <table>
-                            <thead><tr><th>ID</th><th>User</th><th>Type</th><th>Amount</th><th>Fee</th><th>Admin</th><th>Date</th></tr></thead>
+                            <thead>
+                                <tr><th>ID</th><th>User</th><th>Type</th><th>Amount</th><th>Fee</th><th>Admin</th><th>Date</th></tr>
+                            </thead>
                             <tbody id="transactionsList"><tr><td colspan="7"><div class="loading">Loading transactions...</div></td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="depositsSection" style="display: none;">
+                <div class="users-section">
+                    <div class="section-header">
+                        <h3><i class="fas fa-plus-circle"></i> Deposit Requests</h3>
+                        <button class="action-btn add" onclick="refreshDeposits()" style="padding: 8px 15px;"><i class="fas fa-sync-alt"></i> Refresh</button>
+                    </div>
+                    <div class="users-table">
+                        <table>
+                            <thead>
+                                <tr><th>User</th><th>Email</th><th>Amount</th><th>Crypto/Network</th><th>Wallet Address</th><th>Date</th><th>Status</th><th>Actions</th></tr>
+                            </thead>
+                            <tbody id="depositsList"><tr><td colspan="8"><div class="loading">Loading deposit requests...</div></td></tr></tbody>
                         </table>
                     </div>
                 </div>
@@ -570,11 +594,13 @@
                 document.getElementById('usersSection').style.display = section === 'users' ? 'block' : 'none';
                 document.getElementById('withdrawalsSection').style.display = section === 'withdrawals' ? 'block' : 'none';
                 document.getElementById('transactionsSection').style.display = section === 'transactions' ? 'block' : 'none';
-                const titles = { dashboard: 'Dashboard Overview', users: 'Users Management', withdrawals: 'Withdrawal Requests', transactions: 'Transaction History' };
+                document.getElementById('depositsSection').style.display = section === 'deposits' ? 'block' : 'none';
+                const titles = { dashboard: 'Dashboard Overview', users: 'Users Management', withdrawals: 'Withdrawal Requests', transactions: 'Transaction History', deposits: 'Deposit Requests' };
                 document.getElementById('pageTitle').innerText = titles[section];
                 if (section === 'users') loadUsers();
                 if (section === 'withdrawals') loadWithdrawals();
                 if (section === 'transactions') loadTransactions();
+                if (section === 'deposits') loadDeposits();
             });
         });
 
@@ -650,8 +676,87 @@
                 const transactions = await response.json();
                 const tbody = document.getElementById('transactionsList');
                 if (transactions.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:30px;">No transactions found</td></tr>'; return; }
-                tbody.innerHTML = transactions.map(t => `<tr><td><small>${t.transactionId}</small></td><td>${t.userName}</td><td><span style="color: ${t.type === 'admin_deposit' ? '#6fbf6f' : t.type === 'admin_deduct' ? '#bfbf6f' : '#aaa'}">${t.type.replace('_', ' ').toUpperCase()}</span></td><td><strong>$${t.amount.toLocaleString()}</strong></td><td>${t.withdrawalFee ? `$${t.withdrawalFee.toFixed(2)}` : '-'}</td><td><small>${t.adminName || 'System'}</small></td><td><small>${new Date(t.createdAt).toLocaleString()}</small></td>`).join('');
+                tbody.innerHTML = transactions.map(t => `<tr><td><small>${t.transactionId}</small></td><td>${t.userName}</td><td><span style="color: ${t.type === 'admin_deposit' ? '#6fbf6f' : t.type === 'admin_deduct' ? '#bfbf6f' : '#aaa'}">${t.type.replace('_', ' ').toUpperCase()}</span></td><td><strong>$${t.amount.toLocaleString()}</strong></td><td>${t.withdrawalFee ? `$${t.withdrawalFee.toFixed(2)}` : '-'}</td><td><small>${t.adminName || 'System'}</small></td><td><small>${new Date(t.createdAt).toLocaleString()}</small></td></tr>`).join('');
             } catch (error) { document.getElementById('transactionsList').innerHTML = '<tr><td colspan="7">Error loading transactions</td></tr>'; }
+        }
+
+        async function loadDeposits() {
+            try {
+                const response = await fetch(`${API_URL}/api/admin/deposit-requests`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const deposits = await response.json();
+                const tbody = document.getElementById('depositsList');
+                if (deposits.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px;">No deposit requests</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = deposits.map(d => `
+                    <tr>
+                        <td><strong>${d.userName}</strong></td>
+                        <td><small>${d.userEmail}</small></td>
+                        <td><strong style="color:#6fbf6f">$${d.amount.toLocaleString()}</strong></td>
+                        <td>${d.crypto || 'N/A'}<br><small>${d.network || 'N/A'}</small></td>
+                        <td><small>${d.walletAddress ? d.walletAddress.substring(0, 15) + '...' : 'N/A'}</small></td>
+                        <td><small>${new Date(d.createdAt).toLocaleString()}</small></td>
+                        <td><span class="user-status ${d.status === 'pending' ? 'status-pending' : d.status === 'completed' ? 'status-active' : 'status-inactive'}">${d.status}</span></td>
+                        <td class="action-buttons">
+                            ${d.status === 'pending' ? `
+                                <button class="action-btn approve" onclick="approveDeposit('${d._id}')"><i class="fas fa-check"></i> Approve</button>
+                                <button class="action-btn reject" onclick="rejectDeposit('${d._id}')"><i class="fas fa-times"></i> Reject</button>
+                            ` : d.status === 'completed' ? '✅ Approved' : '❌ Rejected'}
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading deposits:', error);
+                document.getElementById('depositsList').innerHTML = '<tr><td colspan="8">Error loading deposits</td></tr>';
+            }
+        }
+
+        async function approveDeposit(depositId) {
+            if (!confirm('Approve this deposit? The user\'s balance will be updated immediately.')) return;
+            try {
+                const response = await fetch(`${API_URL}/api/admin/deposit-requests/${depositId}/approve`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showToast(data.message);
+                    loadDeposits();
+                    loadDashboardStats();
+                    loadTransactions();
+                } else {
+                    showToast(data.error, 'error');
+                }
+            } catch (error) {
+                showToast('Error approving deposit', 'error');
+            }
+        }
+
+        async function rejectDeposit(depositId) {
+            if (!confirm('Reject this deposit request?')) return;
+            try {
+                const response = await fetch(`${API_URL}/api/admin/deposit-requests/${depositId}/reject`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showToast('Deposit rejected');
+                    loadDeposits();
+                } else {
+                    showToast(data.error, 'error');
+                }
+            } catch (error) {
+                showToast('Error rejecting deposit', 'error');
+            }
+        }
+
+        function refreshDeposits() {
+            loadDeposits();
+            showToast('Deposit requests refreshed');
         }
 
         function refreshUsers() { loadUsers(); showToast('Users refreshed'); }
@@ -751,9 +856,10 @@
             if (document.getElementById('usersSection').style.display !== 'none') loadUsers();
             if (document.getElementById('withdrawalsSection').style.display !== 'none') loadWithdrawals();
             if (document.getElementById('transactionsSection').style.display !== 'none') loadTransactions();
+            if (document.getElementById('depositsSection').style.display !== 'none') loadDeposits();
         }, 30000);
 
-        loadDashboardStats(); loadUsers(); loadWithdrawals(); loadTransactions();
+        loadDashboardStats(); loadUsers(); loadWithdrawals(); loadTransactions(); loadDeposits();
     </script>
 </body>
 </html>

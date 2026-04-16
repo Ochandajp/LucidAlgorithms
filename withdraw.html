@@ -29,6 +29,45 @@
         .info-box { background: rgba(100,100,100,0.1); border-radius: 10px; padding: 12px; margin-top: 16px; font-size: 11px; color: #888; }
         .back-link { display: block; text-align: center; margin-top: 16px; color: #999; text-decoration: none; font-size: 13px; }
         .fee-info { display: flex; justify-content: space-between; margin-top: 8px; font-size: 11px; color: #888; }
+        .processing-time { background: rgba(111,191,111,0.1); border-radius: 10px; padding: 12px; margin-top: 16px; text-align: center; border: 1px solid #6fbf6f; }
+        .processing-time i { color: #6fbf6f; margin-right: 5px; }
+        .processing-time span { color: #6fbf6f; font-weight: bold; }
+        
+        /* Modal Styles */
+        .withdraw-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.95);
+            z-index: 10000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        .withdraw-modal.active { display: flex; }
+        .withdraw-modal-content {
+            background: #1a1a1a;
+            border-radius: 20px;
+            padding: 25px;
+            width: 400px;
+            max-width: 90%;
+            border: 1px solid #888;
+            text-align: center;
+        }
+        .withdraw-modal-icon { font-size: 60px; margin-bottom: 15px; }
+        .withdraw-modal-icon.success { color: #6fbf6f; }
+        .withdraw-modal-icon.warning { color: #bfbf6f; }
+        .withdraw-modal-icon.error { color: #bf6f6f; }
+        .withdraw-modal-title { font-size: 20px; font-weight: 700; margin-bottom: 10px; color: #ccc; }
+        .withdraw-modal-message { font-size: 13px; color: #888; margin-bottom: 20px; line-height: 1.5; }
+        .withdraw-modal-details { background: #2a2a2a; border-radius: 12px; padding: 15px; margin: 15px 0; text-align: left; }
+        .withdraw-modal-details p { margin: 5px 0; font-size: 12px; color: #ccc; }
+        .withdraw-modal-buttons { display: flex; gap: 10px; }
+        .withdraw-modal-btn { flex: 1; padding: 12px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 14px; transition: 0.2s; }
+        .withdraw-modal-btn.primary { background: linear-gradient(135deg, #666, #444); color: white; }
+        .withdraw-modal-btn.secondary { background: #2a2a2a; color: #ccc; }
     </style>
 </head>
 <body>
@@ -88,13 +127,31 @@
         
         <button class="withdraw-btn" id="withdrawBtn"><i class="fas fa-paper-plane"></i> Request Withdrawal</button>
         
+        <div class="processing-time">
+            <i class="fas fa-clock"></i> Processing Time: <span>15-25 minutes</span> after approval
+        </div>
+        
         <div class="info-box">
-            <i class="fas fa-clock"></i> Withdrawals processed within 24-48 hours after admin approval.<br>
             <i class="fas fa-percent"></i> A 2% fee applies to all withdrawals.<br>
-            <i class="fas fa-shield-alt"></i> For security, withdrawals require email verification.
+            <i class="fas fa-shield-alt"></i> For security, withdrawals require email verification.<br>
+            <i class="fas fa-bolt"></i> Fast processing - typically completed within 15-25 minutes.
         </div>
         
         <a href="dashboard.html" class="back-link"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+    </div>
+</div>
+
+<!-- Modal -->
+<div id="withdrawModal" class="withdraw-modal">
+    <div class="withdraw-modal-content">
+        <div id="modalIcon" class="withdraw-modal-icon"></div>
+        <div id="modalTitle" class="withdraw-modal-title"></div>
+        <div id="modalMessage" class="withdraw-modal-message"></div>
+        <div id="modalDetails" class="withdraw-modal-details" style="display: none;"></div>
+        <div class="withdraw-modal-buttons">
+            <button id="modalConfirmBtn" class="withdraw-modal-btn primary">Confirm</button>
+            <button id="modalCancelBtn" class="withdraw-modal-btn secondary">Cancel</button>
+        </div>
     </div>
 </div>
 
@@ -107,6 +164,45 @@
     if (!token) window.location.href = 'index.html';
     
     let currentBalance = 0;
+    
+    function showModal(options) {
+        const modal = document.getElementById('withdrawModal');
+        const icon = document.getElementById('modalIcon');
+        const title = document.getElementById('modalTitle');
+        const message = document.getElementById('modalMessage');
+        const details = document.getElementById('modalDetails');
+        const confirmBtn = document.getElementById('modalConfirmBtn');
+        const cancelBtn = document.getElementById('modalCancelBtn');
+        
+        icon.className = `withdraw-modal-icon ${options.type || 'success'}`;
+        if (options.type === 'success') icon.innerHTML = '<i class="fas fa-check-circle"></i>';
+        else if (options.type === 'warning') icon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+        else if (options.type === 'error') icon.innerHTML = '<i class="fas fa-times-circle"></i>';
+        else icon.innerHTML = '<i class="fas fa-info-circle"></i>';
+        
+        title.innerHTML = options.title || 'Withdrawal';
+        message.innerHTML = options.message || '';
+        
+        if (options.details) {
+            details.style.display = 'block';
+            details.innerHTML = options.details;
+        } else {
+            details.style.display = 'none';
+        }
+        
+        confirmBtn.innerHTML = options.confirmText || 'Confirm';
+        confirmBtn.onclick = () => {
+            modal.classList.remove('active');
+            if (options.onConfirm) options.onConfirm();
+        };
+        
+        cancelBtn.onclick = () => {
+            modal.classList.remove('active');
+            if (options.onCancel) options.onCancel();
+        };
+        
+        modal.classList.add('active');
+    }
     
     async function loadBalance() {
         try {
@@ -147,62 +243,124 @@
         const confirmEmail = document.getElementById('confirmEmail').value;
         
         if (!amount || amount < 50) {
-            alert('⚠️ Minimum withdrawal amount is $50 USD');
+            showModal({
+                type: 'warning',
+                title: 'Minimum Amount',
+                message: 'Minimum withdrawal amount is $50 USD',
+                confirmText: 'OK'
+            });
             return;
         }
         
         if (amount > currentBalance) {
-            alert('❌ Insufficient balance');
+            showModal({
+                type: 'error',
+                title: 'Insufficient Balance',
+                message: `Your balance is $${currentBalance.toFixed(2)}. Please enter a lower amount.`,
+                confirmText: 'OK'
+            });
             return;
         }
         
         if (!address) {
-            alert('⚠️ Please enter your wallet address');
+            showModal({
+                type: 'warning',
+                title: 'Wallet Address Required',
+                message: 'Please enter your USDT wallet address',
+                confirmText: 'OK'
+            });
             return;
         }
         
         if (!confirmEmail) {
-            alert('⚠️ Please enter your email for confirmation');
+            showModal({
+                type: 'warning',
+                title: 'Email Required',
+                message: 'Please enter your email for confirmation',
+                confirmText: 'OK'
+            });
             return;
         }
         
         if (confirmEmail !== user.email) {
-            alert('❌ Email does not match your registered email');
+            showModal({
+                type: 'error',
+                title: 'Email Mismatch',
+                message: 'Email does not match your registered email',
+                confirmText: 'OK'
+            });
             return;
         }
         
         const fee = amount * 0.02;
         const netAmount = amount - fee;
         
-        if (!confirm(`📤 Withdrawal Request Summary:\n\nAmount: $${amount}\nFee (2%): $${fee.toFixed(2)}\nYou Receive: $${netAmount.toFixed(2)}\nNetwork: ${network}\nAddress: ${address.substring(0, 15)}...\n\nProcessing time: 24-48 hours\n\nConfirm withdrawal request?`)) {
-            return;
-        }
-        
-        const withdrawBtn = document.getElementById('withdrawBtn');
-        withdrawBtn.disabled = true;
-        withdrawBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Processing...';
-        
-        try {
-            const response = await fetch(`${API_URL}/api/withdrawal/request`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ amount, network, address })
-            });
-            const data = await response.json();
-            
-            if (data.success) {
-                alert(`✅ Withdrawal request submitted successfully!\n\nAmount: $${amount}\nFee: $${data.feeAmount.toFixed(2)}\nNet Amount: $${data.netAmount.toFixed(2)}\nNetwork: ${network}\n\nYour request will be processed within 24-48 hours.`);
-                window.location.href = 'dashboard.html';
-            } else {
-                alert('❌ ' + (data.error || 'Withdrawal failed'));
-                loadBalance();
+        // Show confirmation modal
+        showModal({
+            type: 'warning',
+            title: 'Confirm Withdrawal',
+            message: 'Please review your withdrawal details carefully.',
+            details: `
+                <p><strong>💰 Amount:</strong> $${amount.toFixed(2)}</p>
+                <p><strong>📊 Fee (2%):</strong> $${fee.toFixed(2)}</p>
+                <p><strong>💸 You Receive:</strong> $${netAmount.toFixed(2)}</p>
+                <p><strong>🌐 Network:</strong> ${network}</p>
+                <p><strong>📍 Address:</strong> ${address.substring(0, 15)}...</p>
+                <p><strong>⏱️ Processing:</strong> 15-25 minutes after approval</p>
+            `,
+            confirmText: 'Confirm Withdrawal',
+            onConfirm: async () => {
+                const withdrawBtn = document.getElementById('withdrawBtn');
+                withdrawBtn.disabled = true;
+                withdrawBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Processing...';
+                
+                try {
+                    const response = await fetch(`${API_URL}/api/withdrawal/request`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({ amount, network, address })
+                    });
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        showModal({
+                            type: 'success',
+                            title: 'Withdrawal Request Submitted!',
+                            message: 'Your withdrawal has been submitted successfully.',
+                            details: `
+                                <p><strong>💰 Amount:</strong> $${amount.toFixed(2)}</p>
+                                <p><strong>📊 Fee:</strong> $${data.feeAmount.toFixed(2)}</p>
+                                <p><strong>💸 Net Amount:</strong> $${data.netAmount.toFixed(2)}</p>
+                                <p><strong>⏱️ Processing Time:</strong> 15-25 minutes</p>
+                                <p><strong>✅ Status:</strong> Pending Admin Approval</p>
+                            `,
+                            confirmText: 'Return to Dashboard',
+                            onConfirm: () => {
+                                window.location.href = 'dashboard.html';
+                            }
+                        });
+                    } else {
+                        showModal({
+                            type: 'error',
+                            title: 'Withdrawal Failed',
+                            message: data.error || 'Failed to process withdrawal',
+                            confirmText: 'OK'
+                        });
+                        loadBalance();
+                    }
+                } catch (error) {
+                    showModal({
+                        type: 'error',
+                        title: 'Connection Error',
+                        message: 'Error processing withdrawal. Please try again.',
+                        confirmText: 'OK'
+                    });
+                } finally {
+                    withdrawBtn.disabled = false;
+                    withdrawBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Request Withdrawal';
+                }
             }
-        } catch (error) {
-            alert('❌ Error processing withdrawal. Please try again.');
-        } finally {
-            withdrawBtn.disabled = false;
-            withdrawBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Request Withdrawal';
-        }
+        });
     };
     
     loadBalance();
