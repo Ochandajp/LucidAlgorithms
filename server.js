@@ -74,7 +74,7 @@ const tradeSchema = new mongoose.Schema({
     entryPrice: { type: Number, required: true },
     exitPrice: { type: Number, default: null },
     profit: { type: Number, default: null },
-    profitMultiplier: { type: Number, default: 0.88 }, // Track multiplier used
+    profitMultiplier: { type: Number, default: 0.88 },
     status: { type: String, enum: ['active', 'completed', 'stopped'], default: 'active' },
     analysis: { type: String, default: '' },
     startedAt: { type: Date, default: Date.now },
@@ -179,15 +179,23 @@ function calculateProfitMultiplier(amount, durationMs) {
     // Check if duration is 1 hour or more
     const isLongDuration = durationHours >= 1;
     
+    console.log(`Calculating multiplier: Amount $${amount}, Duration ${durationHours.toFixed(2)} hours, Long duration: ${isLongDuration}`);
+    
     // Default multiplier (88% profit = 0.88x)
     let multiplier = 0.88;
     
     if (isLongDuration) {
         if (amount >= 2000) {
-            multiplier = 3.0; // 300% profit (3x)
+            multiplier = 3.0; // 300% profit (3x) - GUARANTEED WIN
+            console.log(`✅ $${amount} >= $2000 with ${durationHours.toFixed(2)}h → 3x MULTIPLIER (GUARANTEED WIN)`);
         } else if (amount >= 500) {
-            multiplier = 2.0; // 200% profit (2x)
+            multiplier = 2.0; // 200% profit (2x) - GUARANTEED WIN
+            console.log(`✅ $${amount} >= $500 with ${durationHours.toFixed(2)}h → 2x MULTIPLIER (GUARANTEED WIN)`);
+        } else {
+            console.log(`⚠️ $${amount} < $500 with ${durationHours.toFixed(2)}h → Regular 0.88x multiplier (70% win chance, $0 loss)`);
         }
+    } else {
+        console.log(`⚠️ Duration ${durationHours.toFixed(2)}h < 1 hour → Regular 0.88x multiplier (70% win chance, $0 loss)`);
     }
     
     return multiplier;
@@ -447,7 +455,7 @@ function analyzeMarket(symbol, currentPrice, change24h, volume, volatility) {
     return analysis;
 }
 
-// ============= UPDATE ACTIVE TRADES WITH NEW PROFIT LOGIC =============
+// ============= UPDATE ACTIVE TRADES WITH ZERO LOSS =============
 async function updateActiveTrades() {
     const activeTrades = await Trade.find({ status: 'active' });
     const now = Date.now();
@@ -471,8 +479,22 @@ async function updateActiveTrades() {
         if (elapsed >= trade.durationMs) {
             // Calculate profit multiplier based on amount and duration
             const multiplier = calculateProfitMultiplier(trade.amount, trade.durationMs);
-            const isWin = Math.random() < 0.7;
-            let profit = isWin ? trade.amount * multiplier : -10;
+            
+            // Determine if trade wins or loses
+            let isWin = true;
+            let profit = 0;
+            
+            // For trades with multiplier >= 2.0 (2x or 3x), they ALWAYS win
+            if (multiplier >= 2.0) {
+                isWin = true; // Guaranteed win for high-value trades
+                profit = trade.amount * multiplier;
+                console.log(`💰 HIGH-VALUE TRADE: $${trade.amount} with ${multiplier}x multiplier - GUARANTEED WIN of $${profit.toFixed(2)}`);
+            } else {
+                // Regular trades have 70% win chance, 30% chance of $0 loss
+                isWin = Math.random() < 0.7;
+                profit = isWin ? trade.amount * multiplier : 0; // ZERO LOSS on losing trades
+                console.log(`📊 Regular trade: $${trade.amount} - ${isWin ? 'WIN' : 'LOSS ($0)'} - $${profit.toFixed(2)}`);
+            }
             
             trade.profit = profit;
             trade.profitMultiplier = multiplier;
@@ -504,7 +526,8 @@ async function updateActiveTrades() {
                 
                 // Calculate profit percentage for display
                 const profitPercent = (profit / trade.amount) * 100;
-                const multiplierText = multiplier === 3 ? '300% (3x)' : multiplier === 2 ? '200% (2x)' : '88%';
+                const multiplierText = multiplier === 3 ? '300% (3x) GUARANTEED' : multiplier === 2 ? '200% (2x) GUARANTEED' : '88%';
+                const resultText = profit >= 0 ? `WIN! +${profitPercent.toFixed(0)}% (${multiplierText})` : 'LOSS: $0 (No loss)';
                 
                 const transaction = new Transaction({
                     userId: user._id,
@@ -513,11 +536,11 @@ async function updateActiveTrades() {
                     type: 'profit',
                     amount: Math.abs(profit),
                     transactionId: 'TRADE_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
-                    description: `${trade.isDemo ? '[DEMO] ' : ''}${trade.side.toUpperCase()} trade on ${trade.symbolName} completed. ${profit >= 0 ? `WIN! +${profitPercent.toFixed(0)}% (${multiplierText} multiplier)` : `LOSS: -$${Math.abs(profit).toFixed(2)}`}`
+                    description: `${trade.isDemo ? '[DEMO] ' : ''}${trade.side.toUpperCase()} trade on ${trade.symbolName} completed. ${resultText}`
                 });
                 await transaction.save();
                 
-                console.log(`Trade completed: $${trade.amount} @ ${multiplierText} multiplier → ${profit >= 0 ? 'WIN' : 'LOSS'} $${profit.toFixed(2)}`);
+                console.log(`Trade completed: $${trade.amount} @ ${multiplierText} multiplier → ${profit >= 0 ? 'WIN' : 'LOSS ($0)'} $${profit.toFixed(2)}`);
             }
         }
         await trade.save();
@@ -639,7 +662,7 @@ app.post('/api/ai/stop-trade/:tradeId', authenticateToken, async (req, res) => {
         trade.status = 'stopped';
         trade.endedAt = new Date();
         
-        const profit = -10;
+        const profit = 0; // ZERO LOSS when stopping early
         trade.profit = profit;
         
         const user = await User.findById(req.user.id);
@@ -1131,10 +1154,10 @@ app.listen(PORT, async () => {
     await createDefaultAdmin();
     console.log(`🚀 Lucid Algorithms Server running on http://localhost:${PORT}`);
     console.log(`✅ MongoDB: lucidalgorithms database`);
-    console.log(`💰 New Profit Rules:`);
-    console.log(`   - Trades $500+ with 1h+ duration → 200% profit (2x)`);
-    console.log(`   - Trades $2000+ with 1h+ duration → 300% profit (3x)`);
-    console.log(`   - Regular trades → 88% profit`);
+    console.log(`💰 PROFIT RULES:`);
+    console.log(`   - Trades $500+ with 1h+ duration → 200% profit (2x) - GUARANTEED WIN`);
+    console.log(`   - Trades $2000+ with 1h+ duration → 300% profit (3x) - GUARANTEED WIN`);
+    console.log(`   - Regular trades (<$500 or <1h) → 88% profit (70% win chance, $0 loss)`);
     console.log(`💸 Withdrawal fee: 5% of total amount`);
     console.log(`🔐 Admin Login: admin@lucidalgorithms.com / Admin123!`);
 });
