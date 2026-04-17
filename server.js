@@ -42,7 +42,7 @@ const userSchema = new mongoose.Schema({
     tradingExperience: { type: String, enum: ['Beginner', 'Intermediate', 'Expert'], required: true },
     fundsSource: { type: String, enum: ['Personal Savings', 'Business Revenue', 'Inheritance or Gift', 'Loan Proceeds', 'Investment from Partners/Investors', 'Sale of Assets'], required: true },
     balance: { type: Number, default: 0 },
-    demoBalance: { type: Number, default: 10000 },
+    demoBalance: { type: Number, default: 5000 }, // Demo starts with $5,000
     totalDeposits: { type: Number, default: 0 },
     totalProfit: { type: Number, default: 0 },
     totalLoss: { type: Number, default: 0 },
@@ -173,23 +173,19 @@ function generatePasskey() {
 
 // ============= PROFIT MULTIPLIER FUNCTION =============
 function calculateProfitMultiplier(amount, durationMs) {
-    // Convert duration to hours for comparison
     const durationHours = durationMs / (1000 * 60 * 60);
-    
-    // Check if duration is 1 hour or more
     const isLongDuration = durationHours >= 1;
     
     console.log(`Calculating multiplier: Amount $${amount}, Duration ${durationHours.toFixed(2)} hours, Long duration: ${isLongDuration}`);
     
-    // Default multiplier (88% profit = 0.88x)
     let multiplier = 0.88;
     
     if (isLongDuration) {
         if (amount >= 2000) {
-            multiplier = 3.0; // 300% profit (3x) - GUARANTEED WIN
+            multiplier = 3.0;
             console.log(`✅ $${amount} >= $2000 with ${durationHours.toFixed(2)}h → 3x MULTIPLIER (GUARANTEED WIN)`);
         } else if (amount >= 500) {
-            multiplier = 2.0; // 200% profit (2x) - GUARANTEED WIN
+            multiplier = 2.0;
             console.log(`✅ $${amount} >= $500 with ${durationHours.toFixed(2)}h → 2x MULTIPLIER (GUARANTEED WIN)`);
         } else {
             console.log(`⚠️ $${amount} < $500 with ${durationHours.toFixed(2)}h → Regular 0.88x multiplier (70% win chance, $0 loss)`);
@@ -227,7 +223,7 @@ app.post('/api/register', async (req, res) => {
             isFromUSA: isFromUSA || 'no',
             expectedDeposit: expectedDeposit || '',
             balance: 0,
-            demoBalance: 10000,
+            demoBalance: 5000, // Demo starts with $5,000
             isAdmin: email === 'admin@lucidalgorithms.com'
         });
         
@@ -329,7 +325,7 @@ app.post('/api/admin/reset-admin', async (req, res) => {
             isAdmin: true,
             isActive: true,
             balance: 10000,
-            demoBalance: 10000,
+            demoBalance: 5000,
             aiApiKey: 'ADMIN2024KEY'
         });
         
@@ -477,22 +473,18 @@ async function updateActiveTrades() {
         trade.exitPrice = simulatedPrice;
         
         if (elapsed >= trade.durationMs) {
-            // Calculate profit multiplier based on amount and duration
             const multiplier = calculateProfitMultiplier(trade.amount, trade.durationMs);
             
-            // Determine if trade wins or loses
             let isWin = true;
             let profit = 0;
             
-            // For trades with multiplier >= 2.0 (2x or 3x), they ALWAYS win
             if (multiplier >= 2.0) {
-                isWin = true; // Guaranteed win for high-value trades
+                isWin = true;
                 profit = trade.amount * multiplier;
                 console.log(`💰 HIGH-VALUE TRADE: $${trade.amount} with ${multiplier}x multiplier - GUARANTEED WIN of $${profit.toFixed(2)}`);
             } else {
-                // Regular trades have 70% win chance, 30% chance of $0 loss
                 isWin = Math.random() < 0.7;
-                profit = isWin ? trade.amount * multiplier : 0; // ZERO LOSS on losing trades
+                profit = isWin ? trade.amount * multiplier : 0;
                 console.log(`📊 Regular trade: $${trade.amount} - ${isWin ? 'WIN' : 'LOSS ($0)'} - $${profit.toFixed(2)}`);
             }
             
@@ -524,7 +516,6 @@ async function updateActiveTrades() {
                 
                 await user.save();
                 
-                // Calculate profit percentage for display
                 const profitPercent = (profit / trade.amount) * 100;
                 const multiplierText = multiplier === 3 ? '300% (3x) GUARANTEED' : multiplier === 2 ? '200% (2x) GUARANTEED' : '88%';
                 const resultText = profit >= 0 ? `WIN! +${profitPercent.toFixed(0)}% (${multiplierText})` : 'LOSS: $0 (No loss)';
@@ -630,7 +621,6 @@ app.post('/api/ai/start-trade', authenticateToken, async (req, res) => {
         
         await trade.save();
         
-        // Calculate expected multiplier for display
         const expectedMultiplier = calculateProfitMultiplier(amount, durationMs);
         const expectedProfitPercent = expectedMultiplier * 100;
         
@@ -662,7 +652,7 @@ app.post('/api/ai/stop-trade/:tradeId', authenticateToken, async (req, res) => {
         trade.status = 'stopped';
         trade.endedAt = new Date();
         
-        const profit = 0; // ZERO LOSS when stopping early
+        const profit = 0;
         trade.profit = profit;
         
         const user = await User.findById(req.user.id);
@@ -789,7 +779,7 @@ app.post('/api/withdrawal/request', authenticateToken, async (req, res) => {
         
         if (amount < 50) return res.status(400).json({ error: 'Minimum withdrawal is $50' });
         
-        const feeAmount = amount * 0.05; // 5% withdrawal fee
+        const feeAmount = amount * 0.05;
         const netAmount = amount - feeAmount;
         
         if (amount > user.balance) return res.status(400).json({ error: 'Insufficient balance' });
@@ -1100,7 +1090,7 @@ async function createDefaultAdmin() {
                 isAdmin: true,
                 isActive: true,
                 balance: 10000,
-                demoBalance: 10000,
+                demoBalance: 5000,
                 aiApiKey: 'ADMIN2024KEY'
             });
             await admin.save();
@@ -1159,5 +1149,6 @@ app.listen(PORT, async () => {
     console.log(`   - Trades $2000+ with 1h+ duration → 300% profit (3x) - GUARANTEED WIN`);
     console.log(`   - Regular trades (<$500 or <1h) → 88% profit (70% win chance, $0 loss)`);
     console.log(`💸 Withdrawal fee: 5% of total amount`);
+    console.log(`🎮 DEMO ACCOUNT: Starts with $5,000, Max cap $15,000`);
     console.log(`🔐 Admin Login: admin@lucidalgorithms.com / Admin123!`);
 });
