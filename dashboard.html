@@ -188,6 +188,18 @@
             font-weight: 700;
             color: #aaa;
             font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .demo-badge {
+            background: #6f6fbf;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 9px;
+            font-weight: 600;
         }
 
         .main-trading-area {
@@ -678,6 +690,10 @@
             color: #6fbf6f;
         }
 
+        .trade-loss {
+            color: #bf6f6f;
+        }
+
         .badge {
             display: inline-block;
             padding: 2px 6px;
@@ -714,6 +730,11 @@
         .badge-demo {
             background: #6f6fbf20;
             color: #6f6fbf;
+        }
+
+        .badge-loss {
+            background: #bf6f6f20;
+            color: #bf6f6f;
         }
 
         .ai-analysis {
@@ -753,13 +774,23 @@
             color: #aaa;
         }
 
-        .profit-badge, .timer-badge, .completion-badge {
+        .profit-badge, .timer-badge, .stop-loss-badge {
             background: #55555520;
             color: #aaa;
             padding: 2px 6px;
             border-radius: 10px;
             font-size: 9px;
             font-weight: 600;
+        }
+
+        .stop-loss-badge {
+            background: #bf6f6f20;
+            color: #bf6f6f;
+        }
+
+        .tp-badge {
+            background: #6fbf6f20;
+            color: #6fbf6f;
         }
 
         .stop-trade-btn {
@@ -795,7 +826,7 @@
             background: #1a1a1a;
             border-radius: 20px;
             padding: 25px;
-            width: 400px;
+            width: 420px;
             max-width: 90%;
             border: 1px solid #888;
             text-align: center;
@@ -886,11 +917,14 @@
             bottom: 20px;
             right: 20px;
             z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
 
         .chat-toggle {
-            width: 60px;
-            height: 60px;
+            width: 55px;
+            height: 55px;
             background: linear-gradient(135deg, #6f6fbf, #4a4a8f);
             border-radius: 50%;
             display: flex;
@@ -899,6 +933,7 @@
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
             transition: 0.3s;
+            text-decoration: none;
         }
 
         .chat-toggle:hover {
@@ -908,6 +943,10 @@
         .chat-toggle i {
             font-size: 24px;
             color: white;
+        }
+
+        .telegram-toggle {
+            background: linear-gradient(135deg, #0088cc, #005f8a) !important;
         }
 
         .unread-badge {
@@ -1060,6 +1099,13 @@
                 height: 450px;
                 bottom: 80px;
             }
+            .chat-toggle {
+                width: 45px;
+                height: 45px;
+            }
+            .chat-toggle i {
+                font-size: 20px;
+            }
         }
     </style>
 </head>
@@ -1121,9 +1167,9 @@
 
                 <div id="demoCapWarning" class="demo-cap-warning">
                     <i class="fas fa-trophy"></i>
-                    <h4>🎉 Demo Max Limit Reached!</h4>
-                    <p>Your demo balance has reached the maximum cap of <strong>$15,000 USD</strong>. You cannot place more demo trades.</p>
-                    <p>Switch to <strong>REAL account</strong> to continue trading and withdraw your profits!</p>
+                    <h4>🎉 Demo Limit Reached - $10,000 Cap!</h4>
+                    <p>Congratulations! You've reached the maximum demo balance of <strong>$10,000 USD</strong>.</p>
+                    <p>You cannot place more demo trades. Switch to <strong>REAL account</strong> to continue trading and withdraw your profits!</p>
                     <button class="switch-to-real-btn" onclick="switchAccountMode('real')"><i class="fas fa-exchange-alt"></i> Switch to REAL Account</button>
                 </div>
 
@@ -1227,6 +1273,10 @@
 
 <!-- Chat Widget -->
 <div class="chat-widget">
+    <a href="https://t.me/lucidalgorithms" target="_blank" rel="noopener noreferrer" class="chat-toggle telegram-toggle">
+        <i class="fab fa-telegram-plane"></i>
+    </a>
+    
     <div class="chat-toggle" id="chatToggle">
         <i class="fas fa-headset"></i>
         <span class="unread-badge" id="unreadBadge" style="display: none;">0</span>
@@ -1265,7 +1315,6 @@
 <script>
     const API_URL = 'https://lucidalgorithms.onrender.com';
     
-    // CHECK IF USER IS LOGGED IN - REDIRECT IF NOT
     const token = localStorage.getItem('token');
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     
@@ -1276,8 +1325,11 @@
     let currentAccountMode = 'real';
     let currentBalance = 0;
     let currentDemoBalance = 0;
-    const DEMO_START_BALANCE = 5000;  // Demo starts with $5,000
-    const DEMO_MAX_CAP = 15000;       // Demo max cap $15,000
+    const DEMO_START_BALANCE = 5000;
+    const DEMO_MAX_CAP = 10000;  // CHANGED: Demo max cap is now $10,000
+    
+    const DEMO_MIN_TRADE = 80;
+    const REAL_MIN_TRADE = 115;
     
     let currentSymbol = "BTCUSDT";
     let currentSymbolName = "Bitcoin";
@@ -1293,14 +1345,12 @@
     let tvWidget = null;
     let tradeTimers = {};
     
-    // LOGOUT FUNCTION
     function logout() {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         window.location.href = 'index.html';
     }
     
-    // Attach logout to button
     document.getElementById('logoutBtn').onclick = logout;
     
     function showTradeModal(options) {
@@ -1385,7 +1435,6 @@
             const data = await response.json();
             return parseFloat(data.price);
         } catch (e) {
-            console.error('Error fetching live price:', e);
             return null;
         }
     }
@@ -1426,7 +1475,6 @@
         reasons.push(`📈 MACD: ${macd > 0.1 ? 'Bullish Crossover Detected' : macd < -0.1 ? 'Bearish Crossover Detected' : 'Neutral'}`);
         reasons.push(`💰 24h Change: ${change24h > 0 ? '+' : ''}${change24h.toFixed(2)}%`);
         reasons.push(`📉 Volatility: ${volatility > 2 ? 'High Volatility - Exercise Caution' : 'Normal Volatility'}`);
-        reasons.push(`📊 Current Live Price: $${price.toLocaleString()}`);
         
         let buyScore = 50;
         let sellScore = 50;
@@ -1473,6 +1521,13 @@
             withdrawBtn.title = "";
         }
         
+        const aiAmountInput = document.getElementById('aiAmount');
+        if (mode === 'demo') {
+            aiAmountInput.placeholder = `Investment Amount (USD) - Min $${DEMO_MIN_TRADE}`;
+        } else {
+            aiAmountInput.placeholder = `Investment Amount (USD) - Min $${REAL_MIN_TRADE}`;
+        }
+        
         fetchUserProfile();
     }
     
@@ -1493,6 +1548,7 @@
             warningBalanceSpan.innerHTML = balance.toFixed(2);
         }
         
+        // Show demo cap warning when demo balance reaches or exceeds $10,000
         if (currentAccountMode === 'demo' && isDemoAtCap) {
             demoCapWarning.style.display = 'block';
             noBalanceWarning.style.display = 'none';
@@ -1547,9 +1603,6 @@
             renderWithdrawalHistory();
         } catch (error) {
             console.error('Error fetching profile:', error);
-            if (error.status === 401) {
-                logout();
-            }
         }
     }
     
@@ -1603,6 +1656,9 @@
             const startedAt = new Date(trade.startedAt);
             const endTime = new Date(startedAt.getTime() + trade.durationMs);
             const timeLeft = formatTimeRemaining(endTime);
+            const stopLossAmount = trade.amount * 0.18;
+            const stopLossPrice = trade.side === 'buy' ? trade.entryPrice * (1 - 0.18) : trade.entryPrice * (1 + 0.18);
+            const takeProfitPrice = trade.side === 'buy' ? trade.entryPrice * (1 + 0.88) : trade.entryPrice * (1 - 0.88);
             
             setTimeout(() => startTradeTimer(trade._id, endTime), 100);
             
@@ -1618,9 +1674,13 @@
                     </div>
                     <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 11px;">
                         <span>📈 Entry: $${trade.entryPrice?.toFixed(2) || '--'}</span>
+                        <span class="stop-loss-badge"><i class="fas fa-shield-alt"></i> SL: $${stopLossPrice.toFixed(2)} (-18%)</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 11px;">
+                        <span class="tp-badge"><i class="fas fa-bullseye"></i> TP: $${takeProfitPrice.toFixed(2)}</span>
                         <span class="timer-badge"><i class="fas fa-hourglass-half"></i> <span class="timer-value">${timeLeft}</span></span>
                     </div>
-                    <button class="stop-trade-btn" onclick="stopTrade('${trade._id}')"><i class="fas fa-stop"></i> Stop Trade Early</button>
+                    <button class="stop-trade-btn" onclick="stopTrade('${trade._id}')"><i class="fas fa-stop"></i> Stop Trade (18% loss)</button>
                 </div>
             `;
         }).join('');
@@ -1634,12 +1694,15 @@
         }
         
         container.innerHTML = tradeHistory.slice(0, 20).map(trade => {
+            const isProfit = trade.profit > 0;
+            const profitClass = isProfit ? 'trade-profit' : 'trade-loss';
+            const profitSign = isProfit ? '+' : '';
             return `
                 <div class="trade-item">
                     <div style="display: flex; justify-content: space-between;">
-                        <span><strong>${trade.symbolName}</strong> <span class="badge badge-completed">${trade.status}</span></span>
+                        <span><strong>${trade.symbolName}</strong> <span class="badge ${isProfit ? 'badge-completed' : 'badge-loss'}">${trade.status}</span></span>
                         ${trade.isDemo ? '<span class="badge badge-demo">🎮 DEMO</span>' : ''}
-                        <span class="trade-profit">+$${trade.profit?.toFixed(2) || '0'}</span>
+                        <span class="${profitClass}">${profitSign}$${trade.profit?.toFixed(2) || '0'}</span>
                     </div>
                     <div style="display: flex; justify-content: space-between; margin-top: 6px; font-size: 10px; color: #888;">
                         <span>Amount: $${trade.amount}</span>
@@ -1935,18 +1998,23 @@
     async function startAITrade() {
         const balance = currentAccountMode === 'demo' ? currentDemoBalance : currentBalance;
         
+        // Check if demo cap reached (balance >= $10,000)
         if (currentAccountMode === 'demo' && balance >= DEMO_MAX_CAP) {
             showTradeModal({
                 type: 'warning',
-                title: 'Demo Max Limit Reached',
-                message: `Your demo balance has reached the maximum cap of $${DEMO_MAX_CAP.toFixed(2)} USD. You cannot place more demo trades.`,
+                title: 'Demo Limit Reached - $10,000 Cap!',
+                message: `Congratulations! You've reached the maximum demo balance of $${DEMO_MAX_CAP.toFixed(2)} USD.`,
                 details: `
-                    <p><strong>🎉 Congratulations!</strong> You've grown your demo account to the maximum.</p>
+                    <p><strong>🎉 Congratulations!</strong> You've grown your demo account to the maximum cap!</p>
                     <p><strong>💰 Current Demo Balance:</strong> $${balance.toFixed(2)}</p>
-                    <p><strong>📈 Max Cap:</strong> $${DEMO_MAX_CAP.toFixed(2)}</p>
-                    <p><strong>💡 Next Step:</strong> Switch to <strong>REAL account</strong> to continue trading and withdraw real profits!</p>
+                    <p><strong>📈 Maximum Cap:</strong> $${DEMO_MAX_CAP.toFixed(2)}</p>
+                    <p><strong>💡 What's Next?</strong> Switch to your <strong>REAL account</strong> to continue trading and withdraw real profits!</p>
+                    <p><strong>🔐 Real Account Benefits:</strong></p>
+                    <p>• No balance cap</p>
+                    <p>• Withdraw your profits anytime</p>
+                    <p>• Deposit funds to increase trading power</p>
                 `,
-                confirmText: 'Switch to REAL',
+                confirmText: 'Switch to REAL Account',
                 onConfirm: () => {
                     switchAccountMode('real');
                 }
@@ -1977,16 +2045,19 @@
             return;
         }
         
-        if (amount < 115) {
+        const minTradeAmount = currentAccountMode === 'demo' ? DEMO_MIN_TRADE : REAL_MIN_TRADE;
+        
+        if (amount < minTradeAmount) {
             showTradeModal({
                 type: 'warning',
                 title: 'Minimum Investment',
-                message: 'Minimum AI trade amount is $115 USD',
+                message: `Minimum ${currentAccountMode.toUpperCase()} trade amount is $${minTradeAmount} USD`,
                 confirmText: 'OK'
             });
             return;
         }
         
+        // Check if this trade would exceed the demo cap (only for demo mode)
         if (currentAccountMode === 'demo') {
             const profitIfWin = amount * 0.88;
             const newBalanceIfWin = balance + profitIfWin;
@@ -1999,8 +2070,8 @@
                     details: `
                         <p><strong>💰 Current Demo Balance:</strong> $${balance.toFixed(2)}</p>
                         <p><strong>📈 Demo Max Cap:</strong> $${DEMO_MAX_CAP.toFixed(2)}</p>
-                        <p><strong>💡 You can invest up to:</strong> $${maxAllowed.toFixed(2)} USD</p>
-                        <p><strong>🎯 Or switch to REAL account</strong> for unlimited trading!</p>
+                        <p><strong>💡 Maximum investment allowed:</strong> $${maxAllowed.toFixed(2)} USD</p>
+                        <p><strong>🎯 Or switch to REAL account</strong> for unlimited trading and withdrawals!</p>
                     `,
                     confirmText: 'Switch to REAL',
                     onConfirm: () => {
@@ -2042,25 +2113,24 @@
         
         const marketAnalysis = analyzeMarketCondition(currentSymbol, currentRealPrice, marketData.change24h, marketData.volume, marketData.volatility);
         
+        const stopLossAmount = amount * 0.18;
+        const stopLossPercent = 18;
+        
         analysisContent.innerHTML = `
             <div><strong>📊 Market Analysis:</strong> <span style="color: #aaa;">${marketAnalysis.decision.toUpperCase()} signal</span> with ${marketAnalysis.confidence.toFixed(0)}% confidence</div>
             <div style="margin-top: 6px;"><strong>🎯 Live Market Price (Chart):</strong> $${currentRealPrice.toLocaleString()}</div>
+            <div style="margin-top: 6px;"><strong>🛑 Stop Loss Level:</strong> $${stopLossAmount.toFixed(2)} ( -${stopLossPercent}% )</div>
             <div style="margin-top: 6px;"><strong>📈 Analysis:</strong></div>
             ${marketAnalysis.reasons.map(r => `<div class="analysis-line">${r}</div>`).join('')}
         `;
         
         let durationText = '';
-        switch(currentDuration) {
-            case '3m': durationText = '3 minutes'; break;
-            case '5m': durationText = '5 minutes'; break;
-            case '15m': durationText = '15 minutes'; break;
-            case '30m': durationText = '30 minutes'; break;
-            case '1h': durationText = '1 hour'; break;
-            case '4h': durationText = '4 hours'; break;
-            case '1d': durationText = '1 day'; break;
-            case '1w': durationText = '1 week'; break;
-            default: durationText = currentDuration;
-        }
+        const durationMap = {
+            '3m': '3 minutes', '5m': '5 minutes', '15m': '15 minutes',
+            '30m': '30 minutes', '1h': '1 hour', '4h': '4 hours',
+            '1d': '1 day', '1w': '1 week'
+        };
+        durationText = durationMap[currentDuration] || currentDuration;
         
         showTradeModal({
             type: 'success',
@@ -2070,9 +2140,10 @@
                 <p><strong>💰 Investment Amount:</strong> $${amount.toFixed(2)}</p>
                 <p><strong>📊 AI Decision:</strong> ${marketAnalysis.decision.toUpperCase()} (${marketAnalysis.confidence.toFixed(0)}% confidence)</p>
                 <p><strong>🎯 Entry Price (Live Chart):</strong> $${currentRealPrice.toLocaleString()}</p>
+                <p><strong>🛑 Stop Loss:</strong> $${stopLossAmount.toFixed(2)} (${stopLossPercent}%)</p>
                 <p><strong>⚡ Leverage:</strong> ${currentLeverage}x</p>
                 <p><strong>⏱️ Duration:</strong> ${durationText}</p>
-                ${currentAccountMode === 'demo' ? `<p><strong>🎮 DEMO MODE:</strong> Max cap $${DEMO_MAX_CAP}</p>` : ''}
+                ${currentAccountMode === 'demo' ? `<p><strong>🎮 DEMO MODE:</strong> Max cap $${DEMO_MAX_CAP} | Min trade $${DEMO_MIN_TRADE}</p>` : `<p><strong>💰 REAL MODE:</strong> Min trade $${REAL_MIN_TRADE}</p>`}
             `,
             confirmText: '🚀 Run Trade',
             onConfirm: async () => {
@@ -2104,6 +2175,7 @@
                                 <p><strong>📊 Action:</strong> ${data.analysis.decision.toUpperCase()} position opened</p>
                                 <p><strong>💰 Amount:</strong> $${amount.toFixed(2)}</p>
                                 <p><strong>🎯 Entry Price (Chart):</strong> $${currentRealPrice.toLocaleString()}</p>
+                                <p><strong>🛑 Stop Loss:</strong> $${stopLossAmount.toFixed(2)} (${stopLossPercent}%)</p>
                                 <p><strong>⏱️ Duration:</strong> ${durationText}</p>
                             `,
                             confirmText: 'Great!'
@@ -2134,8 +2206,8 @@
         showTradeModal({
             type: 'warning',
             title: 'Stop Trade Early?',
-            message: 'Are you sure you want to stop this trade early?',
-            confirmText: 'Stop Trade',
+            message: 'Stopping early will incur an 18% loss of your investment.',
+            confirmText: 'Stop Trade (18% loss)',
             onConfirm: async () => {
                 try {
                     const response = await fetch(`${API_URL}/api/ai/stop-trade/${tradeId}`, {
@@ -2147,7 +2219,7 @@
                         showTradeModal({
                             type: 'success',
                             title: 'Trade Stopped',
-                            message: `Trade closed. Result: $${data.profit?.toFixed(2)}`,
+                            message: `Trade closed. Result: $${data.profit?.toFixed(2)} (18% loss)`,
                             confirmText: 'OK'
                         });
                         if (tradeTimers[tradeId]) {
@@ -2168,7 +2240,6 @@
         });
     };
     
-    // Navigation between pages
     document.querySelectorAll(".nav-btn").forEach(btn => {
         btn.onclick = () => {
             document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));

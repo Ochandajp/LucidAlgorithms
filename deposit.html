@@ -47,7 +47,6 @@
             font-size: 13px;
         }
 
-        /* Amount Input Section */
         .amount-section {
             background: #1a1a1a;
             border-radius: 16px;
@@ -80,6 +79,16 @@
             border-color: #6fbf6f;
         }
 
+        /* Remove spinner buttons */
+        .amount-input::-webkit-inner-spin-button, 
+        .amount-input::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .amount-input[type=number] {
+            -moz-appearance: textfield;
+        }
+
         .email-display {
             background: #1a1a1a;
             border-radius: 12px;
@@ -96,7 +105,6 @@
             color: #6fbf6f;
         }
 
-        /* Network Tabs */
         .network-tabs {
             display: flex;
             flex-wrap: wrap;
@@ -132,7 +140,6 @@
             color: #ccc;
         }
 
-        /* Wallet Panel */
         .wallet-panel {
             display: none;
             animation: fadeIn 0.3s ease;
@@ -346,6 +353,32 @@
             color: #6f6fbf;
             margin-right: 8px;
         }
+
+        .support-email {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #333;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .support-email a {
+            color: #6f6fbf;
+            text-decoration: none;
+        }
+
+        .support-email a:hover {
+            text-decoration: underline;
+        }
+
+        .display-amount {
+            font-size: 24px;
+            font-weight: bold;
+            color: #6fbf6f;
+            text-align: center;
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
@@ -354,25 +387,26 @@
         <h1><i class="fas fa-plus-circle"></i> Deposit Funds</h1>
         <p class="subtitle">Submit deposit request and send cryptocurrency</p>
 
-        <!-- Email Display (pre-filled from logged in user) -->
         <div class="email-display" id="emailDisplay">
             <i class="fas fa-envelope"></i> <span id="userEmail">Loading...</span>
         </div>
 
-        <!-- Amount Input Section -->
         <div class="amount-section">
             <label><i class="fas fa-dollar-sign"></i> Deposit Amount (USD)</label>
-            <input type="number" id="depositAmount" class="amount-input" placeholder="Minimum $80" step="10" min="80">
+            <input type="number" id="depositAmount" class="amount-input" placeholder="Minimum $80" step="1" min="80" value="">
             <div class="min-amount">
                 <i class="fas fa-info-circle"></i> Minimum Deposit: $80 USD
             </div>
+        </div>
+
+        <div id="displayAmountBox" class="display-amount" style="display: none;">
+            💰 You will send: <span id="displayAmountValue">$0</span> worth of crypto
         </div>
 
         <div class="exact-amount-note" id="exactAmountNote" style="display: none;">
             <i class="fas fa-exclamation-triangle"></i> <strong>IMPORTANT:</strong> Send EXACTLY <span id="exactAmountValue">$0</span> worth of crypto to the address below
         </div>
 
-        <!-- Network Tabs -->
         <div class="network-tabs">
             <button class="tab-btn active" data-network="bnb-bep20">
                 <i class="fab fa-bitcoin"></i> BNB (BEP20)
@@ -580,11 +614,15 @@
         <div id="statusMessage" class="status-message"></div>
 
         <div class="info-box">
-            <i class="fas fa-clock"></i> <strong>Deposit will take 2 minutes to reflect</strong> after admin approval.
+            <i class="fas fa-clock"></i> <strong>Deposit will take 2 minutes to reflect</strong> after confirmation.
         </div>
 
         <div class="info-box">
             <i class="fas fa-question-circle"></i> <strong>Need Help?</strong> Contact support with your transaction ID and registered email address.
+        </div>
+
+        <div class="support-email">
+            <i class="fas fa-envelope"></i> Email: <a href="mailto:support@lucidalgorithms.com">support@lucidalgorithms.com</a>
         </div>
 
         <a href="dashboard.html" class="back-link"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
@@ -605,7 +643,6 @@
     let currentDepositId = null;
     let selectedNetwork = 'bnb-bep20';
 
-    // All wallet addresses (your provided addresses)
     const wallets = {
         'bnb-bep20': {
             address: '0x61f683a9a884c72a6f69f28201fb717254a7459c',
@@ -644,7 +681,6 @@
         }
     };
 
-    // Generate QR codes for all wallets
     function generateAllQRCodes() {
         for (const [key, wallet] of Object.entries(wallets)) {
             const qrContainer = document.getElementById(`qrcode-${key}`);
@@ -662,7 +698,6 @@
         }
     }
 
-    // Copy address function
     window.copyAddress = function(elementId) {
         const addressElement = document.getElementById(elementId);
         const address = addressElement.innerText;
@@ -696,27 +731,71 @@
         }, 8000);
     }
 
-    async function submitDepositRequest() {
-        const amount = parseFloat(document.getElementById('depositAmount').value);
+    // Get DOM elements
+    const amountInput = document.getElementById('depositAmount');
+    const exactAmountSpan = document.getElementById('exactAmountValue');
+    const displayAmountSpan = document.getElementById('displayAmountValue');
+    const displayAmountBox = document.getElementById('displayAmountBox');
+    const exactAmountNote = document.getElementById('exactAmountNote');
+
+    // Function to update amount display - NO DEDUCTIONS
+    function updateAmountDisplay() {
+        let rawValue = amountInput.value;
+        // Remove any non-numeric characters except decimal point
+        let cleanValue = rawValue.replace(/[^0-9.]/g, '');
+        let amount = parseFloat(cleanValue);
         
-        if (!amount || isNaN(amount)) {
+        if (!isNaN(amount) && amount > 0) {
+            // Round to 2 decimal places
+            amount = Math.round(amount * 100) / 100;
+            const displayAmount = amount.toFixed(2);
+            exactAmountSpan.innerText = `$${displayAmount}`;
+            displayAmountSpan.innerText = `$${displayAmount}`;
+            displayAmountBox.style.display = 'block';
+            exactAmountNote.style.display = 'block';
+            // Set the input value to the cleaned amount
+            amountInput.value = amount;
+        } else {
+            displayAmountBox.style.display = 'none';
+            exactAmountNote.style.display = 'none';
+        }
+        
+        // Reset submit button when amount changes
+        const submitBtn = document.getElementById('submitDepositBtn');
+        submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Deposit Request';
+        submitBtn.disabled = false;
+        currentDepositId = null;
+        document.getElementById('statusMessage').style.display = 'none';
+    }
+
+    // Add event listeners
+    amountInput.addEventListener('input', updateAmountDisplay);
+    amountInput.addEventListener('change', updateAmountDisplay);
+
+    async function submitDepositRequest() {
+        let amount = parseFloat(amountInput.value);
+        
+        if (isNaN(amount)) {
             showStatus('Please enter a valid amount', 'error');
             return;
         }
+        
+        // Round to 2 decimal places
+        amount = Math.round(amount * 100) / 100;
         
         if (amount < 80) {
             showStatus('Minimum deposit is $80 USD', 'error');
             return;
         }
         
-        // Get selected network
         const activeTab = document.querySelector('.tab-btn.active');
         const network = activeTab.getAttribute('data-network');
         const walletInfo = wallets[network];
         
-        // Show exact amount note
-        document.getElementById('exactAmountValue').innerText = `$${amount.toFixed(2)}`;
-        document.getElementById('exactAmountNote').style.display = 'block';
+        // Show loading state
+        const submitBtn = document.getElementById('submitDepositBtn');
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Submitting...';
+        submitBtn.disabled = true;
         
         try {
             const response = await fetch(`${API_URL}/api/deposit/request`, {
@@ -738,20 +817,20 @@
             
             if (data.success) {
                 currentDepositId = data.depositId;
-                showStatus(`✅ Deposit request submitted! Amount: $${amount.toFixed(2)} on ${walletInfo.crypto} (${walletInfo.network}). Admin will approve shortly. Deposit will take 2 minutes to reflect after approval.`, 'pending');
+                showStatus(`✅ Deposit request submitted! Amount: $${amount.toFixed(2)} on ${walletInfo.crypto} (${walletInfo.network}). Status: Pending`, 'pending');
+                submitBtn.innerHTML = '<i class="fas fa-clock"></i> Request Submitted - Pending';
                 
-                const submitBtn = document.getElementById('submitDepositBtn');
-                submitBtn.innerHTML = '<i class="fas fa-clock"></i> Request Submitted - Pending Admin Approval';
-                submitBtn.disabled = true;
-                
-                // Start checking status
                 checkDepositStatus();
             } else {
                 showStatus(data.error || 'Failed to submit deposit request', 'error');
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Deposit Request';
+                submitBtn.disabled = false;
             }
         } catch (error) {
             console.error('Error:', error);
             showStatus('Error submitting deposit request. Please try again.', 'error');
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Deposit Request';
+            submitBtn.disabled = false;
         }
     }
 
@@ -767,7 +846,7 @@
                 
                 if (data.status === 'completed') {
                     clearInterval(interval);
-                    showStatus('✅ Deposit approved! Your balance has been updated. Redirecting...', 'success');
+                    showStatus('✅ Deposit confirmed! Your balance has been updated. Redirecting...', 'success');
                     setTimeout(() => {
                         window.location.href = 'dashboard.html';
                     }, 2000);
@@ -797,16 +876,6 @@
                 panel.classList.add('active');
             }
         });
-    });
-
-    // Reset submit button when amount changes
-    document.getElementById('depositAmount').addEventListener('input', () => {
-        const submitBtn = document.getElementById('submitDepositBtn');
-        submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Deposit Request';
-        submitBtn.disabled = false;
-        currentDepositId = null;
-        document.getElementById('exactAmountNote').style.display = 'none';
-        document.getElementById('statusMessage').style.display = 'none';
     });
 
     // Generate QR codes when page loads
