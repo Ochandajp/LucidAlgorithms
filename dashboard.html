@@ -193,15 +193,6 @@
             gap: 5px;
         }
 
-        .demo-badge {
-            background: #6f6fbf;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 20px;
-            font-size: 9px;
-            font-weight: 600;
-        }
-
         .main-trading-area {
             display: flex;
             flex: 1;
@@ -690,10 +681,6 @@
             color: #6fbf6f;
         }
 
-        .trade-loss {
-            color: #bf6f6f;
-        }
-
         .badge {
             display: inline-block;
             padding: 2px 6px;
@@ -730,11 +717,6 @@
         .badge-demo {
             background: #6f6fbf20;
             color: #6f6fbf;
-        }
-
-        .badge-loss {
-            background: #bf6f6f20;
-            color: #bf6f6f;
         }
 
         .ai-analysis {
@@ -774,7 +756,7 @@
             color: #aaa;
         }
 
-        .profit-badge, .timer-badge, .stop-loss-badge {
+        .timer-badge, .stop-loss-badge {
             background: #55555520;
             color: #aaa;
             padding: 2px 6px;
@@ -786,11 +768,6 @@
         .stop-loss-badge {
             background: #bf6f6f20;
             color: #bf6f6f;
-        }
-
-        .tp-badge {
-            background: #6fbf6f20;
-            color: #6fbf6f;
         }
 
         .stop-trade-btn {
@@ -911,7 +888,6 @@
             color: #ccc;
         }
 
-        /* Chat Widget Styles */
         .chat-widget {
             position: fixed;
             bottom: 20px;
@@ -1326,7 +1302,7 @@
     let currentBalance = 0;
     let currentDemoBalance = 0;
     const DEMO_START_BALANCE = 5000;
-    const DEMO_MAX_CAP = 10000;  // CHANGED: Demo max cap is now $10,000
+    const DEMO_MAX_CAP = 10000;
     
     const DEMO_MIN_TRADE = 80;
     const REAL_MIN_TRADE = 115;
@@ -1548,7 +1524,6 @@
             warningBalanceSpan.innerHTML = balance.toFixed(2);
         }
         
-        // Show demo cap warning when demo balance reaches or exceeds $10,000
         if (currentAccountMode === 'demo' && isDemoAtCap) {
             demoCapWarning.style.display = 'block';
             noBalanceWarning.style.display = 'none';
@@ -1658,7 +1633,6 @@
             const timeLeft = formatTimeRemaining(endTime);
             const stopLossAmount = trade.amount * 0.18;
             const stopLossPrice = trade.side === 'buy' ? trade.entryPrice * (1 - 0.18) : trade.entryPrice * (1 + 0.18);
-            const takeProfitPrice = trade.side === 'buy' ? trade.entryPrice * (1 + 0.88) : trade.entryPrice * (1 - 0.88);
             
             setTimeout(() => startTradeTimer(trade._id, endTime), 100);
             
@@ -1674,13 +1648,12 @@
                     </div>
                     <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 11px;">
                         <span>📈 Entry: $${trade.entryPrice?.toFixed(2) || '--'}</span>
-                        <span class="stop-loss-badge"><i class="fas fa-shield-alt"></i> SL: $${stopLossPrice.toFixed(2)} (-18%)</span>
+                        <span class="stop-loss-badge"><i class="fas fa-shield-alt"></i> SL: $${stopLossPrice.toFixed(2)}</span>
                     </div>
                     <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 11px;">
-                        <span class="tp-badge"><i class="fas fa-bullseye"></i> TP: $${takeProfitPrice.toFixed(2)}</span>
                         <span class="timer-badge"><i class="fas fa-hourglass-half"></i> <span class="timer-value">${timeLeft}</span></span>
                     </div>
-                    <button class="stop-trade-btn" onclick="stopTrade('${trade._id}')"><i class="fas fa-stop"></i> Stop Trade (18% loss)</button>
+                    <button class="stop-trade-btn" onclick="stopTrade('${trade._id}')"><i class="fas fa-stop"></i> Stop Trade</button>
                 </div>
             `;
         }).join('');
@@ -1700,7 +1673,7 @@
             return `
                 <div class="trade-item">
                     <div style="display: flex; justify-content: space-between;">
-                        <span><strong>${trade.symbolName}</strong> <span class="badge ${isProfit ? 'badge-completed' : 'badge-loss'}">${trade.status}</span></span>
+                        <span><strong>${trade.symbolName}</strong> <span class="badge badge-completed">${trade.status}</span></span>
                         ${trade.isDemo ? '<span class="badge badge-demo">🎮 DEMO</span>' : ''}
                         <span class="${profitClass}">${profitSign}$${trade.profit?.toFixed(2) || '0'}</span>
                     </div>
@@ -1998,7 +1971,6 @@
     async function startAITrade() {
         const balance = currentAccountMode === 'demo' ? currentDemoBalance : currentBalance;
         
-        // Check if demo cap reached (balance >= $10,000)
         if (currentAccountMode === 'demo' && balance >= DEMO_MAX_CAP) {
             showTradeModal({
                 type: 'warning',
@@ -2009,10 +1981,6 @@
                     <p><strong>💰 Current Demo Balance:</strong> $${balance.toFixed(2)}</p>
                     <p><strong>📈 Maximum Cap:</strong> $${DEMO_MAX_CAP.toFixed(2)}</p>
                     <p><strong>💡 What's Next?</strong> Switch to your <strong>REAL account</strong> to continue trading and withdraw real profits!</p>
-                    <p><strong>🔐 Real Account Benefits:</strong></p>
-                    <p>• No balance cap</p>
-                    <p>• Withdraw your profits anytime</p>
-                    <p>• Deposit funds to increase trading power</p>
                 `,
                 confirmText: 'Switch to REAL Account',
                 onConfirm: () => {
@@ -2057,7 +2025,6 @@
             return;
         }
         
-        // Check if this trade would exceed the demo cap (only for demo mode)
         if (currentAccountMode === 'demo') {
             const profitIfWin = amount * 0.88;
             const newBalanceIfWin = balance + profitIfWin;
@@ -2071,12 +2038,8 @@
                         <p><strong>💰 Current Demo Balance:</strong> $${balance.toFixed(2)}</p>
                         <p><strong>📈 Demo Max Cap:</strong> $${DEMO_MAX_CAP.toFixed(2)}</p>
                         <p><strong>💡 Maximum investment allowed:</strong> $${maxAllowed.toFixed(2)} USD</p>
-                        <p><strong>🎯 Or switch to REAL account</strong> for unlimited trading and withdrawals!</p>
                     `,
-                    confirmText: 'Switch to REAL',
-                    onConfirm: () => {
-                        switchAccountMode('real');
-                    }
+                    confirmText: 'Adjust Amount',
                 });
                 return;
             }
@@ -2118,8 +2081,8 @@
         
         analysisContent.innerHTML = `
             <div><strong>📊 Market Analysis:</strong> <span style="color: #aaa;">${marketAnalysis.decision.toUpperCase()} signal</span> with ${marketAnalysis.confidence.toFixed(0)}% confidence</div>
-            <div style="margin-top: 6px;"><strong>🎯 Live Market Price (Chart):</strong> $${currentRealPrice.toLocaleString()}</div>
-            <div style="margin-top: 6px;"><strong>🛑 Stop Loss Level:</strong> $${stopLossAmount.toFixed(2)} ( -${stopLossPercent}% )</div>
+            <div style="margin-top: 6px;"><strong>🎯 Live Market Price:</strong> $${currentRealPrice.toLocaleString()}</div>
+            <div style="margin-top: 6px;"><strong>🛑 Stop Loss Level:</strong> $${stopLossAmount.toFixed(2)}</div>
             <div style="margin-top: 6px;"><strong>📈 Analysis:</strong></div>
             ${marketAnalysis.reasons.map(r => `<div class="analysis-line">${r}</div>`).join('')}
         `;
@@ -2132,6 +2095,8 @@
         };
         durationText = durationMap[currentDuration] || currentDuration;
         
+        const expectedProfit = amount * (currentDurationMs >= 3600000 ? (amount >= 2000 ? 3.0 : amount >= 500 ? 2.0 : 0.88) : 0.88);
+        
         showTradeModal({
             type: 'success',
             title: '🚀 AI Trade Confirmation',
@@ -2139,8 +2104,9 @@
             details: `
                 <p><strong>💰 Investment Amount:</strong> $${amount.toFixed(2)}</p>
                 <p><strong>📊 AI Decision:</strong> ${marketAnalysis.decision.toUpperCase()} (${marketAnalysis.confidence.toFixed(0)}% confidence)</p>
-                <p><strong>🎯 Entry Price (Live Chart):</strong> $${currentRealPrice.toLocaleString()}</p>
-                <p><strong>🛑 Stop Loss:</strong> $${stopLossAmount.toFixed(2)} (${stopLossPercent}%)</p>
+                <p><strong>🎯 Entry Price:</strong> $${currentRealPrice.toLocaleString()}</p>
+                <p><strong>💰 Expected Profit:</strong> $${expectedProfit.toFixed(2)}</p>
+                <p><strong>🛑 Stop Loss:</strong> $${stopLossAmount.toFixed(2)}</p>
                 <p><strong>⚡ Leverage:</strong> ${currentLeverage}x</p>
                 <p><strong>⏱️ Duration:</strong> ${durationText}</p>
                 ${currentAccountMode === 'demo' ? `<p><strong>🎮 DEMO MODE:</strong> Max cap $${DEMO_MAX_CAP} | Min trade $${DEMO_MIN_TRADE}</p>` : `<p><strong>💰 REAL MODE:</strong> Min trade $${REAL_MIN_TRADE}</p>`}
@@ -2174,8 +2140,8 @@
                             details: `
                                 <p><strong>📊 Action:</strong> ${data.analysis.decision.toUpperCase()} position opened</p>
                                 <p><strong>💰 Amount:</strong> $${amount.toFixed(2)}</p>
-                                <p><strong>🎯 Entry Price (Chart):</strong> $${currentRealPrice.toLocaleString()}</p>
-                                <p><strong>🛑 Stop Loss:</strong> $${stopLossAmount.toFixed(2)} (${stopLossPercent}%)</p>
+                                <p><strong>🎯 Entry Price:</strong> $${currentRealPrice.toLocaleString()}</p>
+                                <p><strong>🛑 Stop Loss:</strong> $${stopLossAmount.toFixed(2)}</p>
                                 <p><strong>⏱️ Duration:</strong> ${durationText}</p>
                             `,
                             confirmText: 'Great!'
@@ -2206,8 +2172,8 @@
         showTradeModal({
             type: 'warning',
             title: 'Stop Trade Early?',
-            message: 'Stopping early will incur an 18% loss of your investment.',
-            confirmText: 'Stop Trade (18% loss)',
+            message: 'Are you sure you want to stop this trade early?',
+            confirmText: 'Stop Trade',
             onConfirm: async () => {
                 try {
                     const response = await fetch(`${API_URL}/api/ai/stop-trade/${tradeId}`, {
@@ -2219,7 +2185,7 @@
                         showTradeModal({
                             type: 'success',
                             title: 'Trade Stopped',
-                            message: `Trade closed. Result: $${data.profit?.toFixed(2)} (18% loss)`,
+                            message: `Trade closed. Result: $${data.profit?.toFixed(2)}`,
                             confirmText: 'OK'
                         });
                         if (tradeTimers[tradeId]) {

@@ -46,7 +46,7 @@ const userSchema = new mongoose.Schema({
     totalDeposits: { type: Number, default: 0 },
     totalProfit: { type: Number, default: 0 },
     totalLoss: { type: Number, default: 0 },
-    winRate: { type: Number, default: 0 },
+    winRate: { type: Number, default: 100 },
     totalTrades: { type: Number, default: 0 },
     createdAt: { type: Date, default: Date.now },
     lastLogin: { type: Date },
@@ -75,7 +75,6 @@ const tradeSchema = new mongoose.Schema({
     exitPrice: { type: Number, default: null },
     profit: { type: Number, default: null },
     profitMultiplier: { type: Number, default: 0.88 },
-    stopLossPercent: { type: Number, default: 0.18 },
     status: { type: String, enum: ['active', 'completed', 'stopped'], default: 'active' },
     analysis: { type: String, default: '' },
     startedAt: { type: Date, default: Date.now },
@@ -178,12 +177,12 @@ function calculateProfitMultiplier(amount, durationMs) {
     
     if (isLongDuration) {
         if (amount >= 2000) {
-            return 3.0; // 300% profit (3x) - GUARANTEED WIN
+            return 3.0; // 300% profit (3x)
         } else if (amount >= 500) {
-            return 2.0; // 200% profit (2x) - GUARANTEED WIN
+            return 2.0; // 200% profit (2x)
         }
     }
-    return 0.88; // 88% profit - 80% win chance
+    return 0.88; // 88% profit for all other trades
 }
 
 // ============= AUTH ROUTES =============
@@ -366,7 +365,7 @@ function analyzeMarket(symbol, currentPrice, change24h, volume, volatility) {
     return analysis;
 }
 
-// ============= UPDATE ACTIVE TRADES WITH CORRECT BALANCE UPDATES =============
+// ============= UPDATE ACTIVE TRADES - ONLY PROFITS, NO LOSSES =============
 async function updateActiveTrades() {
     const activeTrades = await Trade.find({ status: 'active' });
     const now = Date.now();
@@ -375,7 +374,7 @@ async function updateActiveTrades() {
         const startedAt = new Date(trade.startedAt).getTime();
         const elapsed = now - startedAt;
         
-        // Simulate price movement (just for visual, not used for outcome)
+        // Simulate price movement (just for visual)
         if (trade.side === 'buy') {
             const movement = (Math.random() - 0.48) * 0.001;
             trade.exitPrice = trade.entryPrice * (1 + (elapsed / trade.durationMs * 0.0005) + movement);
@@ -387,28 +386,7 @@ async function updateActiveTrades() {
         // ONLY COMPLETE TRADE WHEN TIME HAS FULLY ELAPSED
         if (elapsed >= trade.durationMs) {
             const multiplier = calculateProfitMultiplier(trade.amount, trade.durationMs);
-            let profit = 0;
-            let isWin = true;
-            
-            // Check if guaranteed win trade (2x or 3x multiplier)
-            if (multiplier >= 2.0) {
-                // GUARANTEED WIN - 200% or 300% profit
-                isWin = true;
-                profit = trade.amount * multiplier;
-                console.log(`💰 GUARANTEED WIN: $${trade.amount} with ${multiplier}x multiplier = +$${profit.toFixed(2)} profit`);
-            } else {
-                // Regular trade: 80% win rate, 20% loss rate with 18% loss
-                const random = Math.random();
-                isWin = random < 0.8; // 80% win chance
-                
-                if (isWin) {
-                    profit = trade.amount * multiplier; // 88% profit
-                    console.log(`📈 WIN TRADE: $${trade.amount} → +$${profit.toFixed(2)} (88% profit)`);
-                } else {
-                    profit = -(trade.amount * 0.18); // 18% loss
-                    console.log(`📉 LOSS TRADE: $${trade.amount} → -$${Math.abs(profit).toFixed(2)} (18% loss)`);
-                }
-            }
+            const profit = trade.amount * multiplier; // ALWAYS PROFIT - NO LOSSES
             
             trade.profit = profit;
             trade.profitMultiplier = multiplier;
@@ -417,52 +395,39 @@ async function updateActiveTrades() {
             
             const user = await User.findById(trade.userId);
             if (user) {
-                // Calculate amount to return: Original investment + profit/loss
                 const amountToReturn = trade.amount + profit;
                 
-                // Update appropriate balance (demo or real)
                 if (trade.isDemo) {
-                    const oldBalance = user.demoBalance;
                     user.demoBalance = user.demoBalance + amountToReturn;
-                    console.log(`💰 DEMO Balance: $${oldBalance.toFixed(2)} → $${user.demoBalance.toFixed(2)} (${profit >= 0 ? '+' : ''}$${profit.toFixed(2)})`);
                 } else {
-                    const oldBalance = user.balance;
                     user.balance = user.balance + amountToReturn;
-                    console.log(`💰 REAL Balance: $${oldBalance.toFixed(2)} → $${user.balance.toFixed(2)} (${profit >= 0 ? '+' : ''}$${profit.toFixed(2)})`);
                 }
                 
-                // Update stats
-                if (profit > 0) {
-                    user.totalProfit = (user.totalProfit || 0) + profit;
-                } else if (profit < 0) {
-                    user.totalLoss = (user.totalLoss || 0) + Math.abs(profit);
-                }
+                user.totalProfit = (user.totalProfit || 0) + profit;
                 user.totalTrades = (user.totalTrades || 0) + 1;
                 
-                // Calculate win rate
+                // Calculate win rate (always 100%)
                 const completedTrades = await Trade.find({ userId: trade.userId, status: 'completed' });
                 const wins = completedTrades.filter(t => t.profit > 0).length;
-                user.winRate = completedTrades.length > 0 ? (wins / completedTrades.length) * 100 : 0;
+                user.winRate = completedTrades.length > 0 ? (wins / completedTrades.length) * 100 : 100;
                 
                 await user.save();
                 
-                // Create transaction record
-                const profitPercent = profit > 0 ? (profit / trade.amount) * 100 : (profit / trade.amount) * 100;
-                const multiplierText = multiplier === 3 ? '300% (3x) GUARANTEED' : multiplier === 2 ? '200% (2x) GUARANTEED' : '88%';
-                const resultText = profit > 0 ? `WIN! +${profitPercent.toFixed(0)}% (${multiplierText})` : `LOSS! ${profitPercent.toFixed(0)}% (18% stop loss)`;
+                const profitPercent = (profit / trade.amount) * 100;
+                const multiplierText = multiplier === 3 ? '300% (3x) - $2000+ & 1h+' : multiplier === 2 ? '200% (2x) - $500+ & 1h+' : '88%';
                 
                 const transaction = new Transaction({
                     userId: user._id,
                     isDemo: trade.isDemo,
                     userName: user.fullName,
-                    type: 'trade',
-                    amount: Math.abs(profit),
+                    type: 'profit',
+                    amount: profit,
                     transactionId: 'TRADE_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
-                    description: `${trade.isDemo ? '[DEMO] ' : ''}${trade.side.toUpperCase()} trade on ${trade.symbolName} ($${trade.amount}). ${resultText}`
+                    description: `${trade.isDemo ? '[DEMO] ' : ''}${trade.side.toUpperCase()} trade on ${trade.symbolName} completed. WIN! +${profitPercent.toFixed(0)}% (${multiplierText})`
                 });
                 await transaction.save();
                 
-                console.log(`✅ Trade completed: ${trade.symbolName} - ${resultText}`);
+                console.log(`💰 TRADE COMPLETED: $${trade.amount} → +$${profit.toFixed(2)} (${profitPercent.toFixed(0)}% profit) - ${trade.isDemo ? 'DEMO' : 'REAL'}`);
             }
         }
         await trade.save();
@@ -479,18 +444,16 @@ app.post('/api/ai/start-trade', authenticateToken, async (req, res) => {
         
         const user = await User.findById(req.user.id);
         
-        // Validate passkey
         if (user.aiApiKey !== passkey) {
             return res.status(400).json({ error: 'Invalid AI Passkey' });
         }
         
-        // Minimum trade amount check
+        // Minimum trade amount check (Demo: $80, Real: $115)
         const minAmount = isDemo ? 80 : 115;
         if (amount < minAmount) {
             return res.status(400).json({ error: `Minimum ${isDemo ? 'demo' : 'real'} trade amount is $${minAmount} USD` });
         }
         
-        // Check sufficient balance
         const currentBalance = isDemo ? user.demoBalance : user.balance;
         if (amount > currentBalance) {
             return res.status(400).json({ error: `Insufficient ${isDemo ? 'demo' : 'real'} balance` });
@@ -511,22 +474,18 @@ app.post('/api/ai/start-trade', authenticateToken, async (req, res) => {
             currentPrice = currentPrice || 50000;
         }
         
-        // Analyze market
         const volatility = Math.abs(change24h);
         const analysis = analyzeMarket(symbol, currentPrice, change24h, volume, volatility);
         const side = analysis.decision;
         
-        // DEDUCT INVESTMENT AMOUNT FROM BALANCE IMMEDIATELY
+        // DEDUCT INVESTMENT AMOUNT FROM BALANCE
         if (isDemo) {
             user.demoBalance = user.demoBalance - amount;
-            console.log(`💰 DEMO Deducted: $${amount} from ${user.fullName}. New balance: $${user.demoBalance.toFixed(2)}`);
         } else {
             user.balance = user.balance - amount;
-            console.log(`💰 REAL Deducted: $${amount} from ${user.fullName}. New balance: $${user.balance.toFixed(2)}`);
         }
         await user.save();
         
-        // Format duration text
         let durationText = duration;
         const durationMap = {
             '3m': '3 minutes', '5m': '5 minutes', '15m': '15 minutes',
@@ -535,9 +494,6 @@ app.post('/api/ai/start-trade', authenticateToken, async (req, res) => {
         };
         durationText = durationMap[duration] || duration;
         
-        const stopLossPercent = 0.18; // 18% stop loss
-        
-        // Create trade record
         const trade = new Trade({
             userId: user._id,
             isDemo: isDemo || false,
@@ -550,7 +506,6 @@ app.post('/api/ai/start-trade', authenticateToken, async (req, res) => {
             duration: durationText,
             durationMs,
             entryPrice: currentPrice,
-            stopLossPercent: stopLossPercent,
             analysis: analysis.reasons.join(' | '),
             aiPasskey: passkey,
             status: 'active'
@@ -558,12 +513,10 @@ app.post('/api/ai/start-trade', authenticateToken, async (req, res) => {
         
         await trade.save();
         
-        // Calculate expected values for response
         const multiplier = calculateProfitMultiplier(amount, durationMs);
         const expectedProfitPercent = multiplier * 100;
-        const stopLossAmount = amount * stopLossPercent;
         
-        console.log(`🚀 Trade started: ${symbolName} - ${side.toUpperCase()} - $${amount} (${isDemo ? 'DEMO' : 'REAL'})`);
+        console.log(`🚀 Trade started: ${symbolName} - $${amount} (${isDemo ? 'DEMO' : 'REAL'}) - Expected profit: ${expectedProfitPercent}%`);
         
         res.json({
             success: true,
@@ -575,19 +528,17 @@ app.post('/api/ai/start-trade', authenticateToken, async (req, res) => {
                 signals: analysis.signals,
                 entryPrice: currentPrice,
                 expectedProfit: amount * multiplier,
-                expectedReturn: `${expectedProfitPercent}%`,
-                stopLoss: stopLossAmount,
-                stopLossPercent: 18
+                expectedReturn: `${expectedProfitPercent}%`
             }
         });
         
     } catch (error) {
-        console.error('Error starting trade:', error);
+        console.error(error);
         res.status(500).json({ error: 'Failed to start AI trade' });
     }
 });
 
-// ============= STOP TRADE EARLY =============
+// ============= STOP TRADE EARLY - Still Profit (No Loss) =============
 app.post('/api/ai/stop-trade/:tradeId', authenticateToken, async (req, res) => {
     try {
         const trade = await Trade.findOne({ _id: req.params.tradeId, userId: req.user.id, status: 'active' });
@@ -596,34 +547,26 @@ app.post('/api/ai/stop-trade/:tradeId', authenticateToken, async (req, res) => {
         trade.status = 'stopped';
         trade.endedAt = new Date();
         
-        // Early stop results in 18% loss
-        const loss = -(trade.amount * 0.18);
-        trade.profit = loss;
+        // Early stop still gives 10% profit (better than loss)
+        const profit = trade.amount * 0.10;
+        trade.profit = profit;
         
         const user = await User.findById(req.user.id);
         if (user) {
-            // Return original amount minus 18% loss
-            const amountToReturn = trade.amount + loss;
-            
+            const amountToReturn = trade.amount + profit;
             if (trade.isDemo) {
-                const oldBalance = user.demoBalance;
                 user.demoBalance = user.demoBalance + amountToReturn;
-                console.log(`🛑 DEMO Early Stop: $${trade.amount} → Loss $${Math.abs(loss).toFixed(2)}. Balance: $${oldBalance.toFixed(2)} → $${user.demoBalance.toFixed(2)}`);
             } else {
-                const oldBalance = user.balance;
                 user.balance = user.balance + amountToReturn;
-                console.log(`🛑 REAL Early Stop: $${trade.amount} → Loss $${Math.abs(loss).toFixed(2)}. Balance: $${oldBalance.toFixed(2)} → $${user.balance.toFixed(2)}`);
             }
-            
-            user.totalLoss = (user.totalLoss || 0) + Math.abs(loss);
-            user.totalTrades = (user.totalTrades || 0) + 1;
+            user.totalProfit = (user.totalProfit || 0) + profit;
             await user.save();
         }
         await trade.save();
         
-        res.json({ success: true, profit: loss });
+        console.log(`🛑 Early stop: $${trade.amount} → +$${profit.toFixed(2)} (10% profit)`);
+        res.json({ success: true, profit: profit });
     } catch (error) {
-        console.error('Error stopping trade:', error);
         res.status(500).json({ error: 'Failed to stop trade' });
     }
 });
@@ -684,7 +627,6 @@ app.post('/api/admin/deposit-requests/:depositId/approve', authenticateToken, is
         const user = await User.findById(deposit.userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
         
-        const oldBalance = user.balance;
         user.balance = (user.balance || 0) + deposit.amount;
         user.totalDeposits = (user.totalDeposits || 0) + deposit.amount;
         await user.save();
@@ -706,7 +648,7 @@ app.post('/api/admin/deposit-requests/:depositId/approve', authenticateToken, is
         });
         await transaction.save();
         
-        console.log(`💰 Deposit approved: $${deposit.amount} added to ${user.fullName}. Balance: $${oldBalance.toFixed(2)} → $${user.balance.toFixed(2)}`);
+        console.log(`💰 Deposit approved: $${deposit.amount} added to ${user.fullName}`);
         res.json({ success: true, message: `$${deposit.amount} added to ${user.fullName}'s balance` });
     } catch (error) {
         res.status(500).json({ error: 'Failed to approve deposit' });
@@ -742,7 +684,6 @@ app.post('/api/withdrawal/request', authenticateToken, async (req, res) => {
         
         if (amount > user.balance) return res.status(400).json({ error: 'Insufficient balance' });
         
-        const oldBalance = user.balance;
         user.balance = user.balance - amount;
         await user.save();
         
@@ -769,7 +710,6 @@ app.post('/api/withdrawal/request', authenticateToken, async (req, res) => {
         });
         await transaction.save();
         
-        console.log(`💸 Withdrawal requested: $${amount} from ${user.fullName}. Balance: $${oldBalance.toFixed(2)} → $${user.balance.toFixed(2)}`);
         res.json({ success: true, message: 'Withdrawal request submitted', feeAmount: feeAmount, netAmount: netAmount });
     } catch (error) {
         res.status(500).json({ error: 'Failed to process withdrawal' });
@@ -916,7 +856,6 @@ app.post('/api/admin/add-balance', authenticateToken, isAdmin, async (req, res) 
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
         
-        const oldBalance = user.balance;
         user.balance = user.balance + amount;
         user.totalDeposits = (user.totalDeposits || 0) + amount;
         await user.save();
@@ -932,7 +871,7 @@ app.post('/api/admin/add-balance', authenticateToken, isAdmin, async (req, res) 
         });
         await transaction.save();
         
-        console.log(`💰 Admin added $${amount} to ${user.fullName}. Balance: $${oldBalance.toFixed(2)} → $${user.balance.toFixed(2)}`);
+        console.log(`💰 Admin added $${amount} to ${user.fullName}`);
         res.json({ success: true, message: `Added $${amount} to ${user.fullName}` });
     } catch (error) {
         res.status(500).json({ error: 'Failed to add balance' });
@@ -947,7 +886,6 @@ app.post('/api/admin/deduct-balance', authenticateToken, isAdmin, async (req, re
         if (!user) return res.status(404).json({ error: 'User not found' });
         if (user.balance < amount) return res.status(400).json({ error: 'Insufficient balance' });
         
-        const oldBalance = user.balance;
         user.balance = user.balance - amount;
         await user.save();
         
@@ -962,7 +900,6 @@ app.post('/api/admin/deduct-balance', authenticateToken, isAdmin, async (req, re
         });
         await transaction.save();
         
-        console.log(`💰 Admin deducted $${amount} from ${user.fullName}. Balance: $${oldBalance.toFixed(2)} → $${user.balance.toFixed(2)}`);
         res.json({ success: true, message: `Deducted $${amount} from ${user.fullName}` });
     } catch (error) {
         res.status(500).json({ error: 'Failed to deduct balance' });
@@ -1025,13 +962,9 @@ app.post('/api/admin/withdrawals/:withdrawalId/process', authenticateToken, isAd
         if (status === 'rejected') {
             const user = await User.findById(withdrawal.userId);
             if (user) {
-                const oldBalance = user.balance;
                 user.balance = user.balance + withdrawal.amount;
                 await user.save();
-                console.log(`💸 Withdrawal rejected: $${withdrawal.amount} returned to ${user.fullName}. Balance: $${oldBalance.toFixed(2)} → $${user.balance.toFixed(2)}`);
             }
-        } else if (status === 'approved') {
-            console.log(`✅ Withdrawal approved: $${withdrawal.amount} to ${withdrawal.userName}`);
         }
         res.json({ success: true });
     } catch (error) {
@@ -1078,14 +1011,11 @@ async function createDefaultAdmin() {
     }
 }
 
-// Clean up old messages (older than 2 days)
+// Clean up old messages
 async function cleanupOldMessages() {
     try {
         const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
-        const result = await ChatMessage.deleteMany({ createdAt: { $lt: twoDaysAgo } });
-        if (result.deletedCount > 0) {
-            console.log(`🧹 Cleaned up ${result.deletedCount} old chat messages`);
-        }
+        await ChatMessage.deleteMany({ createdAt: { $lt: twoDaysAgo } });
     } catch (error) {
         console.error('Error cleaning up messages:', error);
     }
@@ -1093,7 +1023,7 @@ async function cleanupOldMessages() {
 
 setInterval(cleanupOldMessages, 6 * 60 * 60 * 1000);
 
-// ============= SERVE HTML FILES =============
+// Serve HTML files
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/index.html', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'register.html')));
@@ -1113,22 +1043,22 @@ app.get('/terms.html', (req, res) => res.sendFile(path.join(__dirname, 'terms.ht
 app.get('/privacy', (req, res) => res.sendFile(path.join(__dirname, 'privacy.html')));
 app.get('/privacy.html', (req, res) => res.sendFile(path.join(__dirname, 'privacy.html')));
 
-// ============= START SERVER =============
 app.listen(PORT, async () => {
     await createDefaultAdmin();
     console.log(`\n🚀 Lucid Algorithms Server running on http://localhost:${PORT}`);
     console.log(`✅ MongoDB: lucidalgorithms database`);
-    console.log(`\n📊 TRADING RULES:`);
+    console.log(`\n📊 PROFIT RULES (NO LOSSES):`);
     console.log(`   ┌─────────────────────────────────────────────────────────────┐`);
-    console.log(`   │  TRADE TYPE              │  REQUIREMENT      │  RESULT      │`);
+    console.log(`   │  TRADE TYPE                    │  REQUIREMENT   │  PROFIT   │`);
     console.log(`   ├─────────────────────────────────────────────────────────────┤`);
-    console.log(`   │  High-Value (3x)         │  $2000+ & 1h+     │  +300% PROFIT │`);
-    console.log(`   │  High-Value (2x)         │  $500+ & 1h+      │  +200% PROFIT │`);
-    console.log(`   │  Regular WIN (80%)       │  Any amount       │  +88% PROFIT  │`);
-    console.log(`   │  Regular LOSS (20%)      │  Any amount       │  -18% LOSS    │`);
+    console.log(`   │  3x Multiplier                 │  $2000+ & 1h+  │  +300%    │`);
+    console.log(`   │  2x Multiplier                 │  $500+ & 1h+   │  +200%    │`);
+    console.log(`   │  Regular Trade                 │  Any amount    │  +88%     │`);
+    console.log(`   │  Early Stop                    │  Any time      │  +10%     │`);
     console.log(`   └─────────────────────────────────────────────────────────────┘`);
-    console.log(`\n💸 Withdrawal fee: 5% of total amount`);
-    console.log(`🎮 DEMO ACCOUNT: Starts with $5,000, Max cap $15,000`);
+    console.log(`\n💰 Minimum Trade: Demo $80 | Real $115`);
+    console.log(`💸 Withdrawal fee: 5% of total amount`);
+    console.log(`🎮 DEMO ACCOUNT: Starts with $5,000, Max cap $10,000`);
     console.log(`🔐 Admin Login: admin@lucidalgorithms.com / Admin123!`);
     console.log(`\n✅ Server ready! Waiting for connections...\n`);
 });
