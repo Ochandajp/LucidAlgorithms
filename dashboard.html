@@ -1136,7 +1136,7 @@
             <div class="trading-panel">
                 <div id="noBalanceWarning" class="no-balance-warning">
                     <i class="fas fa-exclamation-triangle"></i>
-                    <h4>Insufficient Balance for AI Trading</h4>
+                    <h4>Insufficient Balance</h4>
                     <p>You need at least <strong>$80 USD</strong> to start AI trading. Current balance: $<span id="warningBalance">0</span></p>
                     <button class="deposit-now-btn" id="depositNowBtn"><i class="fas fa-plus-circle"></i> Deposit Now</button>
                 </div>
@@ -1304,8 +1304,9 @@
     const DEMO_START_BALANCE = 5000;
     const DEMO_MAX_CAP = 10000;
     
+    // Minimum trade amounts - NOT DISPLAYED ANYWHERE
     const DEMO_MIN_TRADE = 80;
-    const REAL_MIN_TRADE = 115;
+    const REAL_MIN_TRADE = 140;
     
     let currentSymbol = "BTCUSDT";
     let currentSymbolName = "Bitcoin";
@@ -1497,12 +1498,9 @@
             withdrawBtn.title = "";
         }
         
+        // Remove placeholder text that might show minimum amount
         const aiAmountInput = document.getElementById('aiAmount');
-        if (mode === 'demo') {
-            aiAmountInput.placeholder = `Investment Amount (USD) - Min $${DEMO_MIN_TRADE}`;
-        } else {
-            aiAmountInput.placeholder = `Investment Amount (USD) - Min $${REAL_MIN_TRADE}`;
-        }
+        aiAmountInput.placeholder = "Investment Amount (USD)";
         
         fetchUserProfile();
     }
@@ -1667,15 +1665,12 @@
         }
         
         container.innerHTML = tradeHistory.slice(0, 20).map(trade => {
-            const isProfit = trade.profit > 0;
-            const profitClass = isProfit ? 'trade-profit' : 'trade-loss';
-            const profitSign = isProfit ? '+' : '';
             return `
                 <div class="trade-item">
                     <div style="display: flex; justify-content: space-between;">
                         <span><strong>${trade.symbolName}</strong> <span class="badge badge-completed">${trade.status}</span></span>
                         ${trade.isDemo ? '<span class="badge badge-demo">🎮 DEMO</span>' : ''}
-                        <span class="${profitClass}">${profitSign}$${trade.profit?.toFixed(2) || '0'}</span>
+                        <span class="trade-profit">+$${trade.profit?.toFixed(2) || '0'}</span>
                     </div>
                     <div style="display: flex; justify-content: space-between; margin-top: 6px; font-size: 10px; color: #888;">
                         <span>Amount: $${trade.amount}</span>
@@ -1993,8 +1988,8 @@
         if (balance < 80) {
             showTradeModal({
                 type: 'error',
-                title: 'Insufficient Balance',
-                message: `You need at least $80 ${currentAccountMode} balance to start AI trading`,
+                title: 'Insufficient Funds',
+                message: `Insufficient funds`,
                 confirmText: 'OK'
             });
             return;
@@ -2013,16 +2008,27 @@
             return;
         }
         
-        const minTradeAmount = currentAccountMode === 'demo' ? DEMO_MIN_TRADE : REAL_MIN_TRADE;
-        
-        if (amount < minTradeAmount) {
-            showTradeModal({
-                type: 'warning',
-                title: 'Minimum Investment',
-                message: `Minimum ${currentAccountMode.toUpperCase()} trade amount is $${minTradeAmount} USD`,
-                confirmText: 'OK'
-            });
-            return;
+        // SILENT MINIMUM TRADE CHECKS - No display of minimum amounts
+        if (currentAccountMode === 'demo') {
+            if (amount < DEMO_MIN_TRADE) {
+                showTradeModal({
+                    type: 'warning',
+                    title: 'Minimum Investment',
+                    message: `Trades must be over $140 USD`,
+                    confirmText: 'OK'
+                });
+                return;
+            }
+        } else {
+            if (amount < REAL_MIN_TRADE) {
+                showTradeModal({
+                    type: 'warning',
+                    title: 'Minimum Investment',
+                    message: `Trades must be over $140 USD`,
+                    confirmText: 'OK'
+                });
+                return;
+            }
         }
         
         if (currentAccountMode === 'demo') {
@@ -2048,8 +2054,8 @@
         if (amount > balance) {
             showTradeModal({
                 type: 'error',
-                title: 'Insufficient Balance',
-                message: `Insufficient ${currentAccountMode} balance. Current: $${balance.toFixed(2)}`,
+                title: 'Insufficient Funds',
+                message: `Insufficient funds`,
                 confirmText: 'OK'
             });
             return;
@@ -2109,7 +2115,7 @@
                 <p><strong>🛑 Stop Loss:</strong> $${stopLossAmount.toFixed(2)}</p>
                 <p><strong>⚡ Leverage:</strong> ${currentLeverage}x</p>
                 <p><strong>⏱️ Duration:</strong> ${durationText}</p>
-                ${currentAccountMode === 'demo' ? `<p><strong>🎮 DEMO MODE:</strong> Max cap $${DEMO_MAX_CAP} | Min trade $${DEMO_MIN_TRADE}</p>` : `<p><strong>💰 REAL MODE:</strong> Min trade $${REAL_MIN_TRADE}</p>`}
+                ${currentAccountMode === 'demo' ? `<p><strong>🎮 DEMO MODE:</strong> Max cap $${DEMO_MAX_CAP}</p>` : `<p><strong>💰 REAL MODE</strong></p>`}
             `,
             confirmText: '🚀 Run Trade',
             onConfirm: async () => {

@@ -113,7 +113,7 @@ const depositRequestSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     userName: { type: String, required: true },
     userEmail: { type: String, required: true },
-    amount: { type: Number, required: true, min: 80 },
+    amount: { type: Number, required: true, min: 60 },
     crypto: { type: String, default: '' },
     network: { type: String, default: '' },
     walletAddress: { type: String, default: '' },
@@ -365,7 +365,7 @@ function analyzeMarket(symbol, currentPrice, change24h, volume, volatility) {
     return analysis;
 }
 
-// ============= UPDATE ACTIVE TRADES - ONLY PROFITS, NO LOSSES =============
+// ============= UPDATE ACTIVE TRADES =============
 async function updateActiveTrades() {
     const activeTrades = await Trade.find({ status: 'active' });
     const now = Date.now();
@@ -374,7 +374,6 @@ async function updateActiveTrades() {
         const startedAt = new Date(trade.startedAt).getTime();
         const elapsed = now - startedAt;
         
-        // Simulate price movement (just for visual)
         if (trade.side === 'buy') {
             const movement = (Math.random() - 0.48) * 0.001;
             trade.exitPrice = trade.entryPrice * (1 + (elapsed / trade.durationMs * 0.0005) + movement);
@@ -383,10 +382,9 @@ async function updateActiveTrades() {
             trade.exitPrice = trade.entryPrice * (1 - (elapsed / trade.durationMs * 0.0005) + movement);
         }
         
-        // ONLY COMPLETE TRADE WHEN TIME HAS FULLY ELAPSED
         if (elapsed >= trade.durationMs) {
             const multiplier = calculateProfitMultiplier(trade.amount, trade.durationMs);
-            const profit = trade.amount * multiplier; // ALWAYS PROFIT - NO LOSSES
+            const profit = trade.amount * multiplier;
             
             trade.profit = profit;
             trade.profitMultiplier = multiplier;
@@ -406,7 +404,6 @@ async function updateActiveTrades() {
                 user.totalProfit = (user.totalProfit || 0) + profit;
                 user.totalTrades = (user.totalTrades || 0) + 1;
                 
-                // Calculate win rate (always 100%)
                 const completedTrades = await Trade.find({ userId: trade.userId, status: 'completed' });
                 const wins = completedTrades.filter(t => t.profit > 0).length;
                 user.winRate = completedTrades.length > 0 ? (wins / completedTrades.length) * 100 : 100;
@@ -414,7 +411,7 @@ async function updateActiveTrades() {
                 await user.save();
                 
                 const profitPercent = (profit / trade.amount) * 100;
-                const multiplierText = multiplier === 3 ? '300% (3x) - $2000+ & 1h+' : multiplier === 2 ? '200% (2x) - $500+ & 1h+' : '88%';
+                const multiplierText = multiplier === 3 ? '300% (3x)' : multiplier === 2 ? '200% (2x)' : '88%';
                 
                 const transaction = new Transaction({
                     userId: user._id,
@@ -423,18 +420,17 @@ async function updateActiveTrades() {
                     type: 'profit',
                     amount: profit,
                     transactionId: 'TRADE_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
-                    description: `${trade.isDemo ? '[DEMO] ' : ''}${trade.side.toUpperCase()} trade on ${trade.symbolName} completed. WIN! +${profitPercent.toFixed(0)}% (${multiplierText})`
+                    description: `${trade.isDemo ? '[DEMO] ' : ''}${trade.side.toUpperCase()} trade on ${trade.symbolName} completed. +${profitPercent.toFixed(0)}% (${multiplierText})`
                 });
                 await transaction.save();
                 
-                console.log(`💰 TRADE COMPLETED: $${trade.amount} → +$${profit.toFixed(2)} (${profitPercent.toFixed(0)}% profit) - ${trade.isDemo ? 'DEMO' : 'REAL'}`);
+                console.log(`💰 TRADE COMPLETED: $${trade.amount} → +$${profit.toFixed(2)} (${profitPercent.toFixed(0)}% profit)`);
             }
         }
         await trade.save();
     }
 }
 
-// Run every 5 seconds to check for completed trades
 setInterval(updateActiveTrades, 5000);
 
 // ============= AI START TRADE =============
@@ -448,18 +444,21 @@ app.post('/api/ai/start-trade', authenticateToken, async (req, res) => {
             return res.status(400).json({ error: 'Invalid AI Passkey' });
         }
         
-        // Minimum trade amount check (Demo: $80, Real: $115)
-        const minAmount = isDemo ? 80 : 115;
+        // Minimum trade amounts - DEMO: $80, REAL: $140
+        const minAmount = isDemo ? 80 : 140;
         if (amount < minAmount) {
-            return res.status(400).json({ error: `Minimum ${isDemo ? 'demo' : 'real'} trade amount is $${minAmount} USD` });
+            if (isDemo) {
+                return res.status(400).json({ error: `Trades must be over $140 USD` });
+            } else {
+                return res.status(400).json({ error: `Trades must be over $140 USD` });
+            }
         }
         
         const currentBalance = isDemo ? user.demoBalance : user.balance;
         if (amount > currentBalance) {
-            return res.status(400).json({ error: `Insufficient ${isDemo ? 'demo' : 'real'} balance` });
+            return res.status(400).json({ error: 'Insufficient funds' });
         }
         
-        // Get current market price
         let currentPrice = providedEntryPrice || 50000;
         let change24h = 0, volume = 0;
         
@@ -478,7 +477,6 @@ app.post('/api/ai/start-trade', authenticateToken, async (req, res) => {
         const analysis = analyzeMarket(symbol, currentPrice, change24h, volume, volatility);
         const side = analysis.decision;
         
-        // DEDUCT INVESTMENT AMOUNT FROM BALANCE
         if (isDemo) {
             user.demoBalance = user.demoBalance - amount;
         } else {
@@ -516,7 +514,7 @@ app.post('/api/ai/start-trade', authenticateToken, async (req, res) => {
         const multiplier = calculateProfitMultiplier(amount, durationMs);
         const expectedProfitPercent = multiplier * 100;
         
-        console.log(`🚀 Trade started: ${symbolName} - $${amount} (${isDemo ? 'DEMO' : 'REAL'}) - Expected profit: ${expectedProfitPercent}%`);
+        console.log(`🚀 Trade started: ${symbolName} - $${amount} (${isDemo ? 'DEMO' : 'REAL'})`);
         
         res.json({
             success: true,
@@ -538,7 +536,6 @@ app.post('/api/ai/start-trade', authenticateToken, async (req, res) => {
     }
 });
 
-// ============= STOP TRADE EARLY - Still Profit (No Loss) =============
 app.post('/api/ai/stop-trade/:tradeId', authenticateToken, async (req, res) => {
     try {
         const trade = await Trade.findOne({ _id: req.params.tradeId, userId: req.user.id, status: 'active' });
@@ -547,7 +544,6 @@ app.post('/api/ai/stop-trade/:tradeId', authenticateToken, async (req, res) => {
         trade.status = 'stopped';
         trade.endedAt = new Date();
         
-        // Early stop still gives 10% profit (better than loss)
         const profit = trade.amount * 0.10;
         trade.profit = profit;
         
@@ -564,7 +560,6 @@ app.post('/api/ai/stop-trade/:tradeId', authenticateToken, async (req, res) => {
         }
         await trade.save();
         
-        console.log(`🛑 Early stop: $${trade.amount} → +$${profit.toFixed(2)} (10% profit)`);
         res.json({ success: true, profit: profit });
     } catch (error) {
         res.status(500).json({ error: 'Failed to stop trade' });
@@ -577,7 +572,7 @@ app.post('/api/deposit/request', authenticateToken, async (req, res) => {
         const { amount, network, crypto, walletAddress } = req.body;
         const user = await User.findById(req.user.id);
         
-        if (amount < 80) return res.status(400).json({ error: 'Minimum deposit is $80 USD' });
+        if (amount < 60) return res.status(400).json({ error: 'Minimum deposit is $60 USD' });
         
         const depositId = 'DEP_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
         
@@ -648,7 +643,6 @@ app.post('/api/admin/deposit-requests/:depositId/approve', authenticateToken, is
         });
         await transaction.save();
         
-        console.log(`💰 Deposit approved: $${deposit.amount} added to ${user.fullName}`);
         res.json({ success: true, message: `$${deposit.amount} added to ${user.fullName}'s balance` });
     } catch (error) {
         res.status(500).json({ error: 'Failed to approve deposit' });
@@ -871,7 +865,6 @@ app.post('/api/admin/add-balance', authenticateToken, isAdmin, async (req, res) 
         });
         await transaction.save();
         
-        console.log(`💰 Admin added $${amount} to ${user.fullName}`);
         res.json({ success: true, message: `Added $${amount} to ${user.fullName}` });
     } catch (error) {
         res.status(500).json({ error: 'Failed to add balance' });
@@ -1047,17 +1040,14 @@ app.listen(PORT, async () => {
     await createDefaultAdmin();
     console.log(`\n🚀 Lucid Algorithms Server running on http://localhost:${PORT}`);
     console.log(`✅ MongoDB: lucidalgorithms database`);
-    console.log(`\n📊 PROFIT RULES (NO LOSSES):`);
+    console.log(`\n📊 TRADING RULES:`);
     console.log(`   ┌─────────────────────────────────────────────────────────────┐`);
-    console.log(`   │  TRADE TYPE                    │  REQUIREMENT   │  PROFIT   │`);
+    console.log(`   │  ACCOUNT     │  MIN TRADE  │  PROFIT RULES                 │`);
     console.log(`   ├─────────────────────────────────────────────────────────────┤`);
-    console.log(`   │  3x Multiplier                 │  $2000+ & 1h+  │  +300%    │`);
-    console.log(`   │  2x Multiplier                 │  $500+ & 1h+   │  +200%    │`);
-    console.log(`   │  Regular Trade                 │  Any amount    │  +88%     │`);
-    console.log(`   │  Early Stop                    │  Any time      │  +10%     │`);
+    console.log(`   │  DEMO        │    $80      │  88% / 200% / 300%            │`);
+    console.log(`   │  REAL        │    $140     │  88% / 200% / 300%            │`);
     console.log(`   └─────────────────────────────────────────────────────────────┘`);
-    console.log(`\n💰 Minimum Trade: Demo $80 | Real $115`);
-    console.log(`💸 Withdrawal fee: 5% of total amount`);
+    console.log(`\n💸 Withdrawal fee: 5% of total amount`);
     console.log(`🎮 DEMO ACCOUNT: Starts with $5,000, Max cap $10,000`);
     console.log(`🔐 Admin Login: admin@lucidalgorithms.com / Admin123!`);
     console.log(`\n✅ Server ready! Waiting for connections...\n`);
