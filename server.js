@@ -135,7 +135,6 @@ const chatMessageSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now, expires: 172800 }
 });
 
-// Wallet Address Schema
 const walletAddressSchema = new mongoose.Schema({
     network: { type: String, required: true, unique: true },
     crypto: { type: String, required: true },
@@ -145,7 +144,6 @@ const walletAddressSchema = new mongoose.Schema({
     updatedBy: { type: String }
 });
 
-// System Settings Schema
 const systemSettingsSchema = new mongoose.Schema({
     key: { type: String, required: true, unique: true },
     value: { type: mongoose.Schema.Types.Mixed, required: true },
@@ -191,7 +189,6 @@ function generatePasskey() {
     return passkey;
 }
 
-// ============= PROFIT MULTIPLIER FUNCTION =============
 function calculateProfitMultiplier(amount, durationMs) {
     const durationHours = durationMs / (1000 * 60 * 60);
     const isLongDuration = durationHours >= 1;
@@ -793,7 +790,8 @@ app.get('/api/admin/users/:userId', authenticateToken, isAdmin, async (req, res)
     try {
         const user = await User.findById(req.params.userId).select('-password');
         if (!user) return res.status(404).json({ error: 'User not found' });
-        res.json({ user });
+        const transactions = await Transaction.find({ userId: req.params.userId }).sort({ createdAt: -1 }).limit(20);
+        res.json({ user, transactions });
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch user details' });
     }
@@ -801,7 +799,8 @@ app.get('/api/admin/users/:userId', authenticateToken, isAdmin, async (req, res)
 
 app.post('/api/admin/add-balance', authenticateToken, isAdmin, async (req, res) => {
     try {
-        const { userId, amount } = req.body;
+        const { userId, amount, description } = req.body;
+        const admin = await User.findById(req.user.id);
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
         
@@ -809,7 +808,18 @@ app.post('/api/admin/add-balance', authenticateToken, isAdmin, async (req, res) 
         user.totalDeposits = (user.totalDeposits || 0) + amount;
         await user.save();
         
-        res.json({ success: true });
+        const transaction = new Transaction({
+            userId: user._id,
+            userName: user.fullName,
+            type: 'admin_deposit',
+            amount: amount,
+            transactionId: 'ADMIN_DEP_' + Date.now(),
+            description: description || 'Admin deposit',
+            adminName: admin.fullName
+        });
+        await transaction.save();
+        
+        res.json({ success: true, message: `Added $${amount} to ${user.fullName}` });
     } catch (error) {
         res.status(500).json({ error: 'Failed to add balance' });
     }
@@ -817,7 +827,8 @@ app.post('/api/admin/add-balance', authenticateToken, isAdmin, async (req, res) 
 
 app.post('/api/admin/deduct-balance', authenticateToken, isAdmin, async (req, res) => {
     try {
-        const { userId, amount } = req.body;
+        const { userId, amount, description } = req.body;
+        const admin = await User.findById(req.user.id);
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
         if (user.balance < amount) return res.status(400).json({ error: 'Insufficient balance' });
@@ -825,7 +836,18 @@ app.post('/api/admin/deduct-balance', authenticateToken, isAdmin, async (req, re
         user.balance = user.balance - amount;
         await user.save();
         
-        res.json({ success: true });
+        const transaction = new Transaction({
+            userId: user._id,
+            userName: user.fullName,
+            type: 'admin_deduct',
+            amount: amount,
+            transactionId: 'ADMIN_WD_' + Date.now(),
+            description: description || 'Admin deduction',
+            adminName: admin.fullName
+        });
+        await transaction.save();
+        
+        res.json({ success: true, message: `Deducted $${amount} from ${user.fullName}` });
     } catch (error) {
         res.status(500).json({ error: 'Failed to deduct balance' });
     }
@@ -839,7 +861,7 @@ app.put('/api/admin/users/:userId/toggle-status', authenticateToken, isAdmin, as
         user.isActive = !user.isActive;
         await user.save();
         
-        res.json({ success: true });
+        res.json({ success: true, message: `User ${user.isActive ? 'activated' : 'deactivated'}` });
     } catch (error) {
         res.status(500).json({ error: 'Failed to update user status' });
     }
@@ -1009,7 +1031,6 @@ async function createDefaultAdmin() {
     }
 }
 
-// Initialize default wallet addresses
 async function initDefaultWalletAddresses() {
     const defaultAddresses = [
         { network: 'bnb-bep20', crypto: 'BNB', address: '0x61f683a9a884c72a6f69f28201fb717254a7459c' },
@@ -1031,7 +1052,6 @@ async function initDefaultWalletAddresses() {
     console.log('✅ Default wallet addresses initialized');
 }
 
-// Clean up old messages
 async function cleanupOldMessages() {
     try {
         const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
@@ -1045,20 +1065,33 @@ setInterval(cleanupOldMessages, 6 * 60 * 60 * 1000);
 
 // Serve HTML files
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/index.html', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'register.html')));
+app.get('/register.html', (req, res) => res.sendFile(path.join(__dirname, 'register.html')));
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
+app.get('/dashboard.html', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 app.get('/profile', (req, res) => res.sendFile(path.join(__dirname, 'profile.html')));
+app.get('/profile.html', (req, res) => res.sendFile(path.join(__dirname, 'profile.html')));
 app.get('/deposit', (req, res) => res.sendFile(path.join(__dirname, 'deposit.html')));
+app.get('/deposit.html', (req, res) => res.sendFile(path.join(__dirname, 'deposit.html')));
 app.get('/withdraw', (req, res) => res.sendFile(path.join(__dirname, 'withdraw.html')));
+app.get('/withdraw.html', (req, res) => res.sendFile(path.join(__dirname, 'withdraw.html')));
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
+app.get('/admin.html', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
 app.get('/terms', (req, res) => res.sendFile(path.join(__dirname, 'terms.html')));
+app.get('/terms.html', (req, res) => res.sendFile(path.join(__dirname, 'terms.html')));
 app.get('/privacy', (req, res) => res.sendFile(path.join(__dirname, 'privacy.html')));
+app.get('/privacy.html', (req, res) => res.sendFile(path.join(__dirname, 'privacy.html')));
 
 app.listen(PORT, async () => {
     await createDefaultAdmin();
     await initDefaultWalletAddresses();
-    console.log(`\n🚀 Server running on http://localhost:${PORT}`);
-    console.log(`✅ Withdrawal fee: 7%`);
-    console.log(`✅ Demo starts with $5,000, max cap $10,000`);
-    console.log(`✅ Admin: admin@lucidalgorithms.com / Admin123!`);
+    console.log(`\n🚀 Lucid Algorithms Server running on http://localhost:${PORT}`);
+    console.log(`✅ MongoDB: lucidalgorithms database`);
+    console.log(`\n📊 TRADING RULES:`);
+    console.log(`   DEMO: Min $80 | REAL: Min $140`);
+    console.log(`   Profit: 88% / 200% / 300%`);
+    console.log(`💸 Withdrawal fee: 7% of total amount`);
+    console.log(`🎮 DEMO ACCOUNT: Starts with $5,000, Max cap $10,000`);
+    console.log(`🔐 Admin: admin@lucidalgorithms.com / Admin123!`);
 });
