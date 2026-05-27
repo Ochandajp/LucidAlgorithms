@@ -1065,23 +1065,14 @@ setInterval(cleanupOldMessages, 6 * 60 * 60 * 1000);
 
 // Serve HTML files
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-app.get('/index.html', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'register.html')));
-app.get('/register.html', (req, res) => res.sendFile(path.join(__dirname, 'register.html')));
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
-app.get('/dashboard.html', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 app.get('/profile', (req, res) => res.sendFile(path.join(__dirname, 'profile.html')));
-app.get('/profile.html', (req, res) => res.sendFile(path.join(__dirname, 'profile.html')));
 app.get('/deposit', (req, res) => res.sendFile(path.join(__dirname, 'deposit.html')));
-app.get('/deposit.html', (req, res) => res.sendFile(path.join(__dirname, 'deposit.html')));
 app.get('/withdraw', (req, res) => res.sendFile(path.join(__dirname, 'withdraw.html')));
-app.get('/withdraw.html', (req, res) => res.sendFile(path.join(__dirname, 'withdraw.html')));
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
-app.get('/admin.html', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
 app.get('/terms', (req, res) => res.sendFile(path.join(__dirname, 'terms.html')));
-app.get('/terms.html', (req, res) => res.sendFile(path.join(__dirname, 'terms.html')));
 app.get('/privacy', (req, res) => res.sendFile(path.join(__dirname, 'privacy.html')));
-app.get('/privacy.html', (req, res) => res.sendFile(path.join(__dirname, 'privacy.html')));
 
 app.listen(PORT, async () => {
     await createDefaultAdmin();
