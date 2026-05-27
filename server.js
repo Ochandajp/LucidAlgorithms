@@ -239,9 +239,7 @@ app.get('/api/user/profile', authenticateToken, async (req, res) => {
     }
 });
 
-// ============= WALLET ADDRESS ROUTES (FULL CRUD) =============
-
-// Get all active wallets (for deposit page)
+// ============= WALLET ADDRESS ROUTES =============
 app.get('/api/wallet-addresses', authenticateToken, async (req, res) => {
     try {
         const addresses = await WalletAddress.find({ isActive: true });
@@ -251,7 +249,6 @@ app.get('/api/wallet-addresses', authenticateToken, async (req, res) => {
     }
 });
 
-// Get all wallets for admin
 app.get('/api/admin/wallet-addresses', authenticateToken, isAdmin, async (req, res) => {
     try {
         const addresses = await WalletAddress.find();
@@ -261,27 +258,23 @@ app.get('/api/admin/wallet-addresses', authenticateToken, isAdmin, async (req, r
     }
 });
 
-// Add or update wallet address
 app.post('/api/admin/wallet-addresses', authenticateToken, isAdmin, async (req, res) => {
     try {
         const { network, crypto, address } = req.body;
         if (!network || !crypto || !address) {
             return res.status(400).json({ error: 'Network, crypto, and address are required' });
         }
-        
         await WalletAddress.findOneAndUpdate(
             { network: network },
             { network, crypto, address, isActive: true, updatedAt: new Date() },
             { upsert: true }
         );
-        
         res.json({ success: true, message: `Wallet address for ${network} saved successfully` });
     } catch (error) {
         res.status(500).json({ error: 'Failed to save wallet address' });
     }
 });
 
-// Delete wallet address
 app.delete('/api/admin/wallet-addresses/:network', authenticateToken, isAdmin, async (req, res) => {
     try {
         const { network } = req.params;
@@ -292,7 +285,6 @@ app.delete('/api/admin/wallet-addresses/:network', authenticateToken, isAdmin, a
     }
 });
 
-// Toggle wallet active status
 app.post('/api/admin/wallet-addresses/:network/toggle', authenticateToken, isAdmin, async (req, res) => {
     try {
         const wallet = await WalletAddress.findOne({ network: req.params.network });
@@ -305,24 +297,6 @@ app.post('/api/admin/wallet-addresses/:network/toggle', authenticateToken, isAdm
         res.status(500).json({ error: 'Failed to toggle wallet status' });
     }
 });
-
-// Initialize default wallets (ONLY if database is empty)
-async function initDefaultWalletAddresses() {
-    const count = await WalletAddress.countDocuments();
-    if (count === 0) {
-        console.log('No wallet addresses found. Creating defaults...');
-        const defaultAddresses = [
-            { network: 'bsc-bep20', crypto: 'BSC', address: '0x61f683a9a884c72a6f69f28201fb717254a7459c' },
-            { network: 'bsc-usdt', crypto: 'USDT', address: '0x61f683a9a884c72a6f69f28201fb717254a7459c' }
-        ];
-        for (const addr of defaultAddresses) {
-            await WalletAddress.create(addr);
-        }
-        console.log('✅ Default wallet addresses created');
-    } else {
-        console.log(`✅ ${count} wallet addresses already exist, skipping defaults`);
-    }
-}
 
 // ============= WITHDRAWAL MINIMUM ROUTES =============
 app.get('/api/user/withdrawal-min', authenticateToken, async (req, res) => {
@@ -427,22 +401,18 @@ app.get('/api/ai/get-passkey', authenticateToken, async (req, res) => {
     }
 });
 
-// ============= MARKET ANALYSIS =============
+// ============= TRADING FUNCTIONS =============
 function analyzeMarket(symbol, currentPrice, change24h, volume, volatility) {
-    const analysis = { decision: null, confidence: 0, reasons: [], signals: [] };
+    const analysis = { decision: null, confidence: 0, reasons: [] };
     const rsi = 30 + Math.random() * 70;
     const macd = (Math.random() - 0.5) * 2;
-    
     analysis.reasons.push(`📊 RSI: ${rsi.toFixed(2)}`);
     analysis.reasons.push(`📈 MACD: ${macd > 0 ? 'Bullish' : 'Bearish'}`);
-    analysis.reasons.push(`💰 24h Change: ${change24h > 0 ? '+' : ''}${change24h.toFixed(2)}%`);
-    
     let buyScore = 0, sellScore = 0;
     if (rsi < 40) buyScore += 30;
     if (rsi > 60) sellScore += 30;
     if (macd > 0) buyScore += 25;
     if (macd < 0) sellScore += 25;
-    
     if (buyScore > sellScore) {
         analysis.decision = 'buy';
         analysis.confidence = Math.min(95, 55 + (buyScore - sellScore));
@@ -453,23 +423,18 @@ function analyzeMarket(symbol, currentPrice, change24h, volume, volatility) {
     return analysis;
 }
 
-// ============= UPDATE ACTIVE TRADES =============
 async function updateActiveTrades() {
     const activeTrades = await Trade.find({ status: 'active' });
     const now = Date.now();
-    
     for (const trade of activeTrades) {
         const startedAt = new Date(trade.startedAt).getTime();
         const elapsed = now - startedAt;
-        
         if (elapsed >= trade.durationMs) {
             const multiplier = calculateProfitMultiplier(trade.amount, trade.durationMs);
             const profit = trade.amount * multiplier;
-            
             trade.profit = profit;
             trade.status = 'completed';
             trade.endedAt = new Date();
-            
             const user = await User.findById(trade.userId);
             if (user) {
                 const amountToReturn = trade.amount + profit;
@@ -486,23 +451,17 @@ async function updateActiveTrades() {
         await trade.save();
     }
 }
-
 setInterval(updateActiveTrades, 5000);
 
-// ============= AI START TRADE =============
 app.post('/api/ai/start-trade', authenticateToken, async (req, res) => {
     try {
         const { symbol, symbolName, category, amount, leverage, duration, durationMs, passkey, isDemo, entryPrice } = req.body;
         const user = await User.findById(req.user.id);
-        
         if (user.aiApiKey !== passkey) return res.status(400).json({ error: 'Invalid AI Passkey' });
-        
         const minAmount = isDemo ? 80 : 140;
         if (amount < minAmount) return res.status(400).json({ error: `Minimum trade amount is $${minAmount} USD` });
-        
         const currentBalance = isDemo ? user.demoBalance : user.balance;
         if (amount > currentBalance) return res.status(400).json({ error: 'Insufficient funds' });
-        
         let currentPrice = entryPrice || 50000;
         try {
             if (category === 'crypto') {
@@ -510,24 +469,20 @@ app.post('/api/ai/start-trade', authenticateToken, async (req, res) => {
                 currentPrice = parseFloat(response.data.lastPrice);
             }
         } catch (e) {}
-        
         const analysis = analyzeMarket(symbol, currentPrice, 0, 0, 0);
         const side = analysis.decision;
-        
         if (isDemo) {
             user.demoBalance = user.demoBalance - amount;
         } else {
             user.balance = user.balance - amount;
         }
         await user.save();
-        
         const trade = new Trade({
             userId: user._id, isDemo: isDemo || false, symbol, symbolName, category, side,
             amount, leverage, duration, durationMs, entryPrice: currentPrice,
             analysis: analysis.reasons.join(' | '), aiPasskey: passkey, status: 'active'
         });
         await trade.save();
-        
         const multiplier = calculateProfitMultiplier(amount, durationMs);
         res.json({ success: true, trade, analysis: { decision: side, confidence: analysis.confidence, reasons: analysis.reasons, entryPrice: currentPrice, expectedProfit: amount * multiplier } });
     } catch (error) {
@@ -566,7 +521,6 @@ app.post('/api/deposit/request', authenticateToken, async (req, res) => {
         const { amount, network, crypto, walletAddress } = req.body;
         const user = await User.findById(req.user.id);
         if (amount < 60) return res.status(400).json({ error: 'Minimum deposit is $60 USD' });
-        
         const depositRequest = new DepositRequest({
             userId: user._id, userName: user.fullName, userEmail: user.email,
             amount, crypto: crypto || '', network: network || '', walletAddress: walletAddress || '',
@@ -848,7 +802,7 @@ app.post('/api/admin/chat/send', authenticateToken, isAdmin, async (req, res) =>
     }
 });
 
-// ============= CREATE DEFAULT ADMIN =============
+// ============= INITIALIZATION =============
 async function createDefaultAdmin() {
     try {
         const adminExists = await User.findOne({ email: 'admin@lucidalgorithms.com' });
@@ -868,6 +822,23 @@ async function createDefaultAdmin() {
     }
 }
 
+async function initDefaultWalletAddresses() {
+    const count = await WalletAddress.countDocuments();
+    if (count === 0) {
+        console.log('No wallet addresses found. Creating defaults...');
+        const defaultAddresses = [
+            { network: 'bsc-bep20', crypto: 'BSC', address: '0x61f683a9a884c72a6f69f28201fb717254a7459c' },
+            { network: 'bsc-usdt', crypto: 'USDT', address: '0x61f683a9a884c72a6f69f28201fb717254a7459c' }
+        ];
+        for (const addr of defaultAddresses) {
+            await WalletAddress.create(addr);
+        }
+        console.log('✅ Default wallet addresses created');
+    } else {
+        console.log(`✅ ${count} wallet addresses already exist, skipping defaults`);
+    }
+}
+
 async function cleanupOldMessages() {
     try {
         const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
@@ -876,7 +847,6 @@ async function cleanupOldMessages() {
         console.error('Error cleaning up messages:', error);
     }
 }
-
 setInterval(cleanupOldMessages, 6 * 60 * 60 * 1000);
 
 // Serve HTML files
