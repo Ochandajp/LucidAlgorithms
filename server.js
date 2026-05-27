@@ -10,10 +10,11 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors({ origin: '*', credentials: true, methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization'] }));
+app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
+// MongoDB Connection
 const MONGODB_URI = 'mongodb+srv://LucidAlgorithm:Lucid@cluster0.kcqdr6j.mongodb.net/?retryWrites=true&w=majority';
 
 mongoose.connect(MONGODB_URI, { dbName: 'lucidalgorithms' })
@@ -176,15 +177,6 @@ function generatePasskey() {
         passkey += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return passkey;
-}
-
-function calculateProfitMultiplier(amount, durationMs) {
-    const durationHours = durationMs / (1000 * 60 * 60);
-    if (durationHours >= 1) {
-        if (amount >= 2000) return 3.0;
-        if (amount >= 500) return 2.0;
-    }
-    return 0.88;
 }
 
 // ============= AUTH ROUTES =============
@@ -430,8 +422,7 @@ async function updateActiveTrades() {
         const startedAt = new Date(trade.startedAt).getTime();
         const elapsed = now - startedAt;
         if (elapsed >= trade.durationMs) {
-            const multiplier = calculateProfitMultiplier(trade.amount, trade.durationMs);
-            const profit = trade.amount * multiplier;
+            const profit = trade.amount * 0.88;
             trade.profit = profit;
             trade.status = 'completed';
             trade.endedAt = new Date();
@@ -483,8 +474,7 @@ app.post('/api/ai/start-trade', authenticateToken, async (req, res) => {
             analysis: analysis.reasons.join(' | '), aiPasskey: passkey, status: 'active'
         });
         await trade.save();
-        const multiplier = calculateProfitMultiplier(amount, durationMs);
-        res.json({ success: true, trade, analysis: { decision: side, confidence: analysis.confidence, reasons: analysis.reasons, entryPrice: currentPrice, expectedProfit: amount * multiplier } });
+        res.json({ success: true, trade, analysis: { decision: side, confidence: analysis.confidence, reasons: analysis.reasons, entryPrice: currentPrice, expectedProfit: amount * 0.88 } });
     } catch (error) {
         res.status(500).json({ error: 'Failed to start AI trade' });
     }
@@ -496,7 +486,7 @@ app.post('/api/ai/stop-trade/:tradeId', authenticateToken, async (req, res) => {
         if (!trade) return res.status(404).json({ error: 'Active trade not found' });
         trade.status = 'stopped';
         trade.endedAt = new Date();
-        const profit = trade.amount * 0.10;
+        const profit = trade.amount * 0.44;
         trade.profit = profit;
         const user = await User.findById(req.user.id);
         if (user) {
@@ -665,7 +655,7 @@ app.post('/api/admin/add-balance', authenticateToken, isAdmin, async (req, res) 
         await user.save();
         const transaction = new Transaction({ userId: user._id, userName: user.fullName, type: 'admin_deposit', amount, transactionId: 'ADMIN_DEP_' + Date.now(), description: description || 'Admin deposit', adminName: admin.fullName });
         await transaction.save();
-        res.json({ success: true, message: `Added $${amount} to ${user.fullName}` });
+        res.json({ success: true });
     } catch (error) {
         res.status(500).json({ error: 'Failed to add balance' });
     }
@@ -682,7 +672,7 @@ app.post('/api/admin/deduct-balance', authenticateToken, isAdmin, async (req, re
         await user.save();
         const transaction = new Transaction({ userId: user._id, userName: user.fullName, type: 'admin_deduct', amount, transactionId: 'ADMIN_WD_' + Date.now(), description: description || 'Admin deduction', adminName: admin.fullName });
         await transaction.save();
-        res.json({ success: true, message: `Deducted $${amount} from ${user.fullName}` });
+        res.json({ success: true });
     } catch (error) {
         res.status(500).json({ error: 'Failed to deduct balance' });
     }
@@ -694,7 +684,7 @@ app.put('/api/admin/users/:userId/toggle-status', authenticateToken, isAdmin, as
         if (!user) return res.status(404).json({ error: 'User not found' });
         user.isActive = !user.isActive;
         await user.save();
-        res.json({ success: true, message: `User ${user.isActive ? 'activated' : 'deactivated'}` });
+        res.json({ success: true });
     } catch (error) {
         res.status(500).json({ error: 'Failed to update user status' });
     }
@@ -768,7 +758,24 @@ app.get('/api/admin/chat/users', authenticateToken, isAdmin, async (req, res) =>
     try {
         const users = await ChatMessage.aggregate([
             { $sort: { createdAt: -1 } },
-            { $group: { _id: '$userId', userName: { $first: '$userName' }, userEmail: { $first: '$userEmail' }, lastMessage: { $first: '$message' }, lastMessageTime: { $first: '$createdAt' }, unreadCount: { $sum: { $cond: [{ $and: [{ $eq: ['$sender', 'user'] }, { $eq: ['$isRead', false] }] }, 1, 0] } } },
+            {
+                $group: {
+                    _id: '$userId',
+                    userName: { $first: '$userName' },
+                    userEmail: { $first: '$userEmail' },
+                    lastMessage: { $first: '$message' },
+                    lastMessageTime: { $first: '$createdAt' },
+                    unreadCount: {
+                        $sum: {
+                            $cond: [
+                                { $and: [{ $eq: ['$sender', 'user'] }, { $eq: ['$isRead', false] }] },
+                                1,
+                                0
+                            ]
+                        }
+                    }
+                }
+            },
             { $sort: { lastMessageTime: -1 } }
         ]);
         res.json({ success: true, users });
@@ -823,31 +830,25 @@ async function createDefaultAdmin() {
 }
 
 async function initDefaultWalletAddresses() {
-    const count = await WalletAddress.countDocuments();
-    if (count === 0) {
-        console.log('No wallet addresses found. Creating defaults...');
-        const defaultAddresses = [
-            { network: 'bsc-bep20', crypto: 'BSC', address: '0x61f683a9a884c72a6f69f28201fb717254a7459c' },
-            { network: 'bsc-usdt', crypto: 'USDT', address: '0x61f683a9a884c72a6f69f28201fb717254a7459c' }
-        ];
-        for (const addr of defaultAddresses) {
-            await WalletAddress.create(addr);
-        }
-        console.log('✅ Default wallet addresses created');
-    } else {
-        console.log(`✅ ${count} wallet addresses already exist, skipping defaults`);
-    }
-}
-
-async function cleanupOldMessages() {
     try {
-        const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
-        await ChatMessage.deleteMany({ createdAt: { $lt: twoDaysAgo } });
+        const count = await WalletAddress.countDocuments();
+        if (count === 0) {
+            console.log('No wallet addresses found. Creating defaults...');
+            const defaultAddresses = [
+                { network: 'bsc-bep20', crypto: 'BSC', address: '0x61f683a9a884c72a6f69f28201fb717254a7459c' },
+                { network: 'bsc-usdt', crypto: 'USDT', address: '0x61f683a9a884c72a6f69f28201fb717254a7459c' }
+            ];
+            for (const addr of defaultAddresses) {
+                await WalletAddress.create(addr);
+            }
+            console.log('✅ Default wallet addresses created');
+        } else {
+            console.log(`✅ ${count} wallet addresses already exist, skipping defaults`);
+        }
     } catch (error) {
-        console.error('Error cleaning up messages:', error);
+        console.error('Error initializing wallets:', error);
     }
 }
-setInterval(cleanupOldMessages, 6 * 60 * 60 * 1000);
 
 // Serve HTML files
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
@@ -860,9 +861,11 @@ app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html'))
 app.get('/terms', (req, res) => res.sendFile(path.join(__dirname, 'terms.html')));
 app.get('/privacy', (req, res) => res.sendFile(path.join(__dirname, 'privacy.html')));
 
+// Start server
 app.listen(PORT, async () => {
     await createDefaultAdmin();
     await initDefaultWalletAddresses();
-    console.log(`\n🚀 Server running on http://localhost:${PORT}`);
+    console.log(`\n🚀 Server running on port ${PORT}`);
     console.log(`🔐 Admin: admin@lucidalgorithms.com / Admin123!`);
+    console.log(`💰 Wallet addresses loaded from database`);
 });
