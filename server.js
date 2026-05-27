@@ -1031,25 +1031,28 @@ async function createDefaultAdmin() {
     }
 }
 
+// ONLY CREATE DEFAULT WALLETS IF NONE EXIST (DO NOT OVERWRITE)
 async function initDefaultWalletAddresses() {
-    const defaultAddresses = [
-        { network: 'bnb-bep20', crypto: 'BNB', address: '0x61f683a9a884c72a6f69f28201fb717254a7459c' },
-        { network: 'usdt-bep20', crypto: 'USDT', address: '0x61f683a9a884c72a6f69f28201fb717254a7459c' },
-        { network: 'usdt-trc20', crypto: 'USDT', address: 'TRpMxesumMB6H7v4CZhKcnJZzjfnsXMSC3' },
-        { network: 'usdc-bep20', crypto: 'USDC', address: '0x61f683a9a884c72a6f69f28201fb717254a7459c' },
-        { network: 'usdc-erc20', crypto: 'USDC', address: '0x61f683a9a884c72a6f69f28201fb717254a7459c' },
-        { network: 'eth-bep20', crypto: 'ETH', address: '0x61f683a9a884c72a6f69f28201fb717254a7459c' },
-        { network: 'btc-bep20', crypto: 'BTC', address: '0x61f683a9a884c72a6f69f28201fb717254a7459c' }
-    ];
-    
-    for (const addr of defaultAddresses) {
-        await WalletAddress.findOneAndUpdate(
-            { network: addr.network },
-            { ...addr, isActive: true, updatedAt: new Date() },
-            { upsert: true }
-        );
+    const count = await WalletAddress.countDocuments();
+    if (count === 0) {
+        console.log('No wallet addresses found. Creating defaults...');
+        const defaultAddresses = [
+            { network: 'usdt-trc20', crypto: 'USDT', address: 'TRpMxesumMB6H7v4CZhKcnJZzjfnsXMSC3' },
+            { network: 'bnb-bep20', crypto: 'BNB', address: '0x61f683a9a884c72a6f69f28201fb717254a7459c' },
+            { network: 'usdt-bep20', crypto: 'USDT', address: '0x61f683a9a884c72a6f69f28201fb717254a7459c' },
+            { network: 'usdc-bep20', crypto: 'USDC', address: '0x61f683a9a884c72a6f69f28201fb717254a7459c' },
+            { network: 'usdc-erc20', crypto: 'USDC', address: '0x61f683a9a884c72a6f69f28201fb717254a7459c' },
+            { network: 'eth-bep20', crypto: 'ETH', address: '0x61f683a9a884c72a6f69f28201fb717254a7459c' },
+            { network: 'btc-bep20', crypto: 'BTC', address: '0x61f683a9a884c72a6f69f28201fb717254a7459c' }
+        ];
+        
+        for (const addr of defaultAddresses) {
+            await WalletAddress.create(addr);
+        }
+        console.log('✅ Default wallet addresses created');
+    } else {
+        console.log(`✅ ${count} wallet addresses already exist, skipping defaults`);
     }
-    console.log('✅ Default wallet addresses initialized');
 }
 
 async function cleanupOldMessages() {
