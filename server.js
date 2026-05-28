@@ -14,7 +14,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// MongoDB Connection
 const MONGODB_URI = 'mongodb+srv://LucidAlgorithm:Lucid@cluster0.kcqdr6j.mongodb.net/?retryWrites=true&w=majority';
 
 mongoose.connect(MONGODB_URI, { dbName: 'lucidalgorithms' })
@@ -177,6 +176,15 @@ function generatePasskey() {
         passkey += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return passkey;
+}
+
+function calculateProfitMultiplier(amount, durationMs) {
+    const durationHours = durationMs / (1000 * 60 * 60);
+    if (durationHours >= 1) {
+        if (amount >= 2000) return 3.0;
+        if (amount >= 500) return 2.0;
+    }
+    return 0.88;
 }
 
 // ============= AUTH ROUTES =============
@@ -422,7 +430,8 @@ async function updateActiveTrades() {
         const startedAt = new Date(trade.startedAt).getTime();
         const elapsed = now - startedAt;
         if (elapsed >= trade.durationMs) {
-            const profit = trade.amount * 0.88;
+            const multiplier = calculateProfitMultiplier(trade.amount, trade.durationMs);
+            const profit = trade.amount * multiplier;
             trade.profit = profit;
             trade.status = 'completed';
             trade.endedAt = new Date();
@@ -644,6 +653,44 @@ app.get('/api/admin/users/:userId', authenticateToken, isAdmin, async (req, res)
     }
 });
 
+// ============= DELETE USER ROUTE (NEW) =============
+app.delete('/api/admin/users/:userId', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const { userId } = req.params;
+        
+        // Don't allow deleting yourself
+        if (userId === req.user.id) {
+            return res.status(400).json({ error: 'You cannot delete your own admin account' });
+        }
+        
+        // Find the user
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        // Don't allow deleting other admins
+        if (user.isAdmin) {
+            return res.status(400).json({ error: 'Cannot delete other admin accounts' });
+        }
+        
+        // Delete all user-related data
+        await Trade.deleteMany({ userId: userId });
+        await Transaction.deleteMany({ userId: userId });
+        await Withdrawal.deleteMany({ userId: userId });
+        await DepositRequest.deleteMany({ userId: userId });
+        await ChatMessage.deleteMany({ userId: userId });
+        
+        // Delete the user
+        await User.findByIdAndDelete(userId);
+        
+        res.json({ success: true, message: `User ${user.fullName} (${user.email}) has been permanently deleted along with all their data.` });
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        res.status(500).json({ error: 'Failed to delete user' });
+    }
+});
+
 app.post('/api/admin/add-balance', authenticateToken, isAdmin, async (req, res) => {
     try {
         const { userId, amount, description } = req.body;
@@ -655,7 +702,7 @@ app.post('/api/admin/add-balance', authenticateToken, isAdmin, async (req, res) 
         await user.save();
         const transaction = new Transaction({ userId: user._id, userName: user.fullName, type: 'admin_deposit', amount, transactionId: 'ADMIN_DEP_' + Date.now(), description: description || 'Admin deposit', adminName: admin.fullName });
         await transaction.save();
-        res.json({ success: true });
+        res.json({ success: true, message: `Added $${amount} to ${user.fullName}` });
     } catch (error) {
         res.status(500).json({ error: 'Failed to add balance' });
     }
@@ -672,7 +719,7 @@ app.post('/api/admin/deduct-balance', authenticateToken, isAdmin, async (req, re
         await user.save();
         const transaction = new Transaction({ userId: user._id, userName: user.fullName, type: 'admin_deduct', amount, transactionId: 'ADMIN_WD_' + Date.now(), description: description || 'Admin deduction', adminName: admin.fullName });
         await transaction.save();
-        res.json({ success: true });
+        res.json({ success: true, message: `Deducted $${amount} from ${user.fullName}` });
     } catch (error) {
         res.status(500).json({ error: 'Failed to deduct balance' });
     }
@@ -684,7 +731,7 @@ app.put('/api/admin/users/:userId/toggle-status', authenticateToken, isAdmin, as
         if (!user) return res.status(404).json({ error: 'User not found' });
         user.isActive = !user.isActive;
         await user.save();
-        res.json({ success: true });
+        res.json({ success: true, message: `User ${user.isActive ? 'activated' : 'deactivated'}` });
     } catch (error) {
         res.status(500).json({ error: 'Failed to update user status' });
     }
@@ -830,25 +877,31 @@ async function createDefaultAdmin() {
 }
 
 async function initDefaultWalletAddresses() {
-    try {
-        const count = await WalletAddress.countDocuments();
-        if (count === 0) {
-            console.log('No wallet addresses found. Creating defaults...');
-            const defaultAddresses = [
-                { network: 'bsc-bep20', crypto: 'BSC', address: '0x61f683a9a884c72a6f69f28201fb717254a7459c' },
-                { network: 'bsc-usdt', crypto: 'USDT', address: '0x61f683a9a884c72a6f69f28201fb717254a7459c' }
-            ];
-            for (const addr of defaultAddresses) {
-                await WalletAddress.create(addr);
-            }
-            console.log('✅ Default wallet addresses created');
-        } else {
-            console.log(`✅ ${count} wallet addresses already exist, skipping defaults`);
+    const count = await WalletAddress.countDocuments();
+    if (count === 0) {
+        console.log('No wallet addresses found. Creating defaults...');
+        const defaultAddresses = [
+            { network: 'trc20', crypto: 'USDT', address: 'TRpMxesumMB6H7v4CZhKcnJZzjfnsXMSC3' },
+            { network: 'bep20', crypto: 'USDT', address: '0x61f683a9a884c72a6f69f28201fb717254a7459c' }
+        ];
+        for (const addr of defaultAddresses) {
+            await WalletAddress.create(addr);
         }
-    } catch (error) {
-        console.error('Error initializing wallets:', error);
+        console.log('✅ Default wallet addresses created');
+    } else {
+        console.log(`✅ ${count} wallet addresses already exist, skipping defaults`);
     }
 }
+
+async function cleanupOldMessages() {
+    try {
+        const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+        await ChatMessage.deleteMany({ createdAt: { $lt: twoDaysAgo } });
+    } catch (error) {
+        console.error('Error cleaning up messages:', error);
+    }
+}
+setInterval(cleanupOldMessages, 6 * 60 * 60 * 1000);
 
 // Serve HTML files
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
@@ -861,11 +914,10 @@ app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html'))
 app.get('/terms', (req, res) => res.sendFile(path.join(__dirname, 'terms.html')));
 app.get('/privacy', (req, res) => res.sendFile(path.join(__dirname, 'privacy.html')));
 
-// Start server
 app.listen(PORT, async () => {
     await createDefaultAdmin();
     await initDefaultWalletAddresses();
-    console.log(`\n🚀 Server running on port ${PORT}`);
+    console.log(`\n🚀 Server running on http://localhost:${PORT}`);
     console.log(`🔐 Admin: admin@lucidalgorithms.com / Admin123!`);
-    console.log(`💰 Wallet addresses loaded from database`);
+    console.log(`🗑️ Delete User endpoint available at: DELETE /api/admin/users/:userId`);
 });
