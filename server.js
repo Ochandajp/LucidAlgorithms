@@ -13,7 +13,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// MongoDB connection
 const MONGODB_URI = 'mongodb+srv://LucidAlgorithm:Lucid@cluster0.kcqdr6j.mongodb.net/?retryWrites=true&w=majority';
 mongoose.connect(MONGODB_URI, { dbName: 'lucidalgorithms' })
   .then(() => console.log('✅ MongoDB connected'))
@@ -142,7 +141,7 @@ const isAdmin = async (req, res, next) => {
 app.post('/api/register', async (req, res) => {
     try {
         const { email, password, fullName, age, country, countryCode, phoneNumber, employmentStatus, tradingExperience, fundsSource, termsAccepted } = req.body;
-        if (await User.findOne({ email })) return res.status(400).json({ error: 'Email already exists' });
+        if (await User.findOne({ email })) return res.status(400).json({ error: 'Email exists' });
         const hashed = await bcrypt.hash(password, 10);
         const user = new User({
             email, password: hashed, fullName, age, country, countryCode, phoneNumber,
@@ -179,7 +178,7 @@ app.put('/api/admin/users/:userId/toggle-status', authenticateToken, isAdmin, as
     if (!user) return res.status(404).json({ error: 'User not found' });
     user.isActive = !user.isActive;
     await user.save();
-    res.json({ success: true, message: `User ${user.isActive ? 'activated' : 'deactivated'}` });
+    res.json({ success: true });
 });
 
 app.delete('/api/admin/users/:userId', authenticateToken, isAdmin, async (req, res) => {
@@ -193,7 +192,7 @@ app.delete('/api/admin/users/:userId', authenticateToken, isAdmin, async (req, r
     await ChatMessage.deleteMany({ userId: req.params.userId });
     await KYC.deleteOne({ userId: req.params.userId });
     await User.findByIdAndDelete(req.params.userId);
-    res.json({ success: true, message: `User ${user.fullName} deleted` });
+    res.json({ success: true });
 });
 
 // ========== ADMIN: WITHDRAWALS ==========
@@ -263,7 +262,7 @@ app.post('/api/admin/kyc/verify/:userId', authenticateToken, isAdmin, async (req
         await User.findByIdAndUpdate(req.params.userId, { kycStatus: 'verified' });
     } else {
         kyc.status = 'rejected';
-        kyc.rejectionReason = rejectionReason || 'No reason provided';
+        kyc.rejectionReason = rejectionReason || 'No reason';
         await User.findByIdAndUpdate(req.params.userId, { kycStatus: 'rejected' });
     }
     kyc.verifiedAt = new Date();
@@ -359,20 +358,19 @@ app.get('/api/admin/stats', authenticateToken, isAdmin, async (req, res) => {
     res.json({ totalUsers, activeUsers, totalBalance, totalProfit, pendingKYC });
 });
 
-// ========== PUBLIC ENDPOINTS (for deposit page) ==========
+// ========== PUBLIC ENDPOINTS ==========
 app.get('/api/wallet-addresses', authenticateToken, async (req, res) => {
     const addresses = await WalletAddress.find({ isActive: true });
     res.json({ success: true, addresses });
 });
 
-// ========== USER PROFILE ==========
+// ========== USER PROFILE & KYC ==========
 app.get('/api/user/profile', authenticateToken, async (req, res) => {
     const user = await User.findById(req.user.id).select('-password');
     const kyc = await KYC.findOne({ userId: req.user.id });
     res.json({ user, kyc, tradeHistory: [], activeTrades: [], withdrawalHistory: [] });
 });
 
-// ========== KYC SUBMISSION ==========
 app.post('/api/kyc/submit', authenticateToken, async (req, res) => {
     const { idType, dateOfBirth, fileName, fileType } = req.body;
     if (!idType || !dateOfBirth || !fileName) return res.status(400).json({ error: 'All fields required' });
@@ -382,7 +380,7 @@ app.post('/api/kyc/submit', authenticateToken, async (req, res) => {
         { upsert: true }
     );
     await User.findByIdAndUpdate(req.user.id, { kycStatus: 'pending' });
-    res.json({ success: true, message: 'KYC submitted. Pending admin review.' });
+    res.json({ success: true, message: 'KYC submitted' });
 });
 
 app.get('/api/kyc/status', authenticateToken, async (req, res) => {
@@ -391,7 +389,7 @@ app.get('/api/kyc/status', authenticateToken, async (req, res) => {
     res.json({ success: true, kycStatus: user.kycStatus, kycData: kyc });
 });
 
-// ========== DEPOSIT REQUEST (for user) ==========
+// ========== DEPOSIT REQUEST (user) ==========
 app.post('/api/deposit/request', authenticateToken, async (req, res) => {
     const user = await User.findById(req.user.id);
     if (user.kycStatus !== 'verified') return res.status(403).json({ error: 'KYC verification required' });
@@ -405,39 +403,51 @@ app.post('/api/deposit/request', authenticateToken, async (req, res) => {
     res.json({ success: true, depositId: deposit._id });
 });
 
-// ========== INITIALIZE DEFAULT ADMIN AND WALLETS ==========
+// ========== AI PASSKEY (simple) ==========
+app.post('/api/ai/save-passkey', authenticateToken, async (req, res) => {
+    const { passkey } = req.body;
+    if (!passkey) return res.status(400).json({ error: 'Passkey required' });
+    await User.findByIdAndUpdate(req.user.id, { aiApiKey: passkey });
+    res.json({ success: true });
+});
+app.get('/api/ai/get-passkey', authenticateToken, async (req, res) => {
+    const user = await User.findById(req.user.id);
+    res.json({ success: true, passkey: user.aiApiKey || '' });
+});
+app.delete('/api/ai/delete-passkey', authenticateToken, async (req, res) => {
+    await User.findByIdAndUpdate(req.user.id, { aiApiKey: '' });
+    res.json({ success: true });
+});
+
+// ========== TRADING (simplified) ==========
+app.post('/api/ai/start-trade', authenticateToken, async (req, res) => {
+    res.json({ success: true, trade: { _id: 'mock', amount: req.body.amount } });
+});
+app.post('/api/ai/stop-trade/:tradeId', authenticateToken, async (req, res) => {
+    res.json({ success: true, profit: 0 });
+});
+
+// ========== INITIALIZE DEFAULT ADMIN & WALLETS ==========
 async function init() {
-    // Create default admin if not exists
     const adminExists = await User.findOne({ email: 'admin@lucidalgorithms.com' });
     if (!adminExists) {
         const hashed = await bcrypt.hash('Admin123!', 10);
         const admin = new User({
-            email: 'admin@lucidalgorithms.com',
-            password: hashed,
-            fullName: 'System Admin',
-            age: 30,
-            country: 'US',
-            countryCode: '+1',
-            phoneNumber: '1234567890',
-            employmentStatus: 'Employed',
-            tradingExperience: 'Expert',
-            fundsSource: 'Business Revenue',
-            termsAccepted: true,
-            isAdmin: true,
-            balance: 10000,
-            kycStatus: 'verified'
+            email: 'admin@lucidalgorithms.com', password: hashed, fullName: 'System Admin',
+            age: 30, country: 'US', countryCode: '+1', phoneNumber: '1234567890',
+            employmentStatus: 'Employed', tradingExperience: 'Expert', fundsSource: 'Business Revenue',
+            termsAccepted: true, isAdmin: true, balance: 10000, kycStatus: 'verified'
         });
         await admin.save();
         console.log('✅ Admin created: admin@lucidalgorithms.com / Admin123!');
     }
-    // Create default wallet addresses if none
     const walletCount = await WalletAddress.countDocuments();
     if (walletCount === 0) {
         await WalletAddress.create([
             { network: 'trc20', crypto: 'USDT', address: 'TRpMxesumMB6H7v4CZhKcnJZzjfnsXMSC3', isActive: true },
             { network: 'bep20', crypto: 'USDT', address: '0x61f683a9a884c72a6f69f28201fb717254a7459c', isActive: true }
         ]);
-        console.log('✅ Default wallet addresses created');
+        console.log('✅ Default wallets created');
     }
 }
 init();
