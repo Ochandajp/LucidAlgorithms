@@ -142,7 +142,6 @@ const systemSettingsSchema = new mongoose.Schema({
     updatedAt: { type: Date, default: Date.now }
 });
 
-// KYC Schema
 const kycSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
     idType: { type: String, enum: ['passport', 'drivers_license', 'id_card'], required: true },
@@ -194,15 +193,6 @@ function generatePasskey() {
     return passkey;
 }
 
-function calculateProfitMultiplier(amount, durationMs) {
-    const durationHours = durationMs / (1000 * 60 * 60);
-    if (durationHours >= 1) {
-        if (amount >= 2000) return 3.0;
-        if (amount >= 500) return 2.0;
-    }
-    return 0.88;
-}
-
 // ============= AUTH ROUTES =============
 app.post('/api/register', async (req, res) => {
     try {
@@ -233,13 +223,27 @@ app.post('/api/login', async (req, res) => {
         if (!user) return res.status(400).json({ error: 'Invalid email or password' });
         const validPassword = await bcrypt.compare(password, user.password);
         if (!validPassword) return res.status(400).json({ error: 'Invalid email or password' });
-        if (!user.isActive) return res.status(400).json({ error: 'Account is deactivated. Contact support.' });
+        if (!user.isActive) return res.status(400).json({ error: 'Account deactivated' });
         user.lastLogin = new Date();
         await user.save();
         const token = jwt.sign({ id: user._id, email: user.email, isAdmin: user.isAdmin }, process.env.JWT_SECRET || 'lucid_algorithms_jwt_secret');
         res.json({ success: true, token, user: { id: user._id, email: user.email, fullName: user.fullName, balance: user.balance, demoBalance: user.demoBalance, isAdmin: user.isAdmin, kycStatus: user.kycStatus } });
     } catch (error) {
         res.status(500).json({ error: 'Login failed' });
+    }
+});
+
+// ============= USER PROFILE =============
+app.get('/api/user/profile', authenticateToken, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select('-password');
+        const activeTrades = await Trade.find({ userId: req.user.id, status: 'active' }).sort({ startedAt: -1 });
+        const tradeHistory = await Trade.find({ userId: req.user.id, status: 'completed' }).sort({ endedAt: -1 }).limit(50);
+        const withdrawalHistory = await Withdrawal.find({ userId: req.user.id }).sort({ createdAt: -1 }).limit(20);
+        const kyc = await KYC.findOne({ userId: req.user.id });
+        res.json({ user, activeTrades, tradeHistory, withdrawalHistory, kyc });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch profile' });
     }
 });
 
@@ -257,36 +261,25 @@ app.get('/api/kyc/status', authenticateToken, async (req, res) => {
 app.post('/api/kyc/submit', authenticateToken, async (req, res) => {
     try {
         const { idType, dateOfBirth, fileName, fileType } = req.body;
-        
-        if (!idType || !dateOfBirth || !fileName) {
-            return res.status(400).json({ error: 'All fields are required' });
-        }
-        
-        const existingKYC = await KYC.findOne({ userId: req.user.id });
-        if (existingKYC && existingKYC.status === 'verified') {
-            return res.status(400).json({ error: 'Your identity is already verified' });
-        }
-        
+        if (!idType || !dateOfBirth || !fileName) return res.status(400).json({ error: 'All fields are required' });
+        const existing = await KYC.findOne({ userId: req.user.id });
+        if (existing && existing.status === 'verified') return res.status(400).json({ error: 'Already verified' });
         await KYC.findOneAndUpdate(
             { userId: req.user.id },
             { idType, dateOfBirth: new Date(dateOfBirth), fileName, fileType, status: 'pending', submittedAt: new Date(), rejectionReason: '' },
             { upsert: true }
         );
-        
         await User.findByIdAndUpdate(req.user.id, { kycStatus: 'pending' });
-        
-        res.json({ success: true, message: 'KYC submitted successfully! Awaiting admin verification.' });
+        res.json({ success: true, message: 'KYC submitted! Awaiting admin verification.' });
     } catch (error) {
-        console.error(error);
         res.status(500).json({ error: 'Failed to submit KYC' });
     }
 });
 
-// Admin KYC Routes
 app.get('/api/admin/kyc/pending', authenticateToken, isAdmin, async (req, res) => {
     try {
-        const pendingKYC = await KYC.find({ status: 'pending' }).populate('userId', 'fullName email');
-        res.json({ success: true, pendingKYC });
+        const pending = await KYC.find({ status: 'pending' }).populate('userId', 'fullName email');
+        res.json({ success: true, pendingKYC: pending });
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch pending KYC' });
     }
@@ -294,8 +287,8 @@ app.get('/api/admin/kyc/pending', authenticateToken, isAdmin, async (req, res) =
 
 app.get('/api/admin/kyc/all', authenticateToken, isAdmin, async (req, res) => {
     try {
-        const allKYC = await KYC.find().populate('userId', 'fullName email').sort({ submittedAt: -1 });
-        res.json({ success: true, allKYC });
+        const all = await KYC.find().populate('userId', 'fullName email').sort({ submittedAt: -1 });
+        res.json({ success: true, allKYC: all });
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch KYC submissions' });
     }
@@ -305,58 +298,37 @@ app.post('/api/admin/kyc/verify/:userId', authenticateToken, isAdmin, async (req
     try {
         const { userId } = req.params;
         const { action, rejectionReason } = req.body;
-        
         const kyc = await KYC.findOne({ userId });
-        if (!kyc) return res.status(404).json({ error: 'KYC submission not found' });
-        
+        if (!kyc) return res.status(404).json({ error: 'KYC not found' });
         const admin = await User.findById(req.user.id);
-        
         if (action === 'approve') {
             kyc.status = 'verified';
             kyc.verifiedAt = new Date();
             kyc.verifiedBy = admin.email;
             await User.findByIdAndUpdate(userId, { kycStatus: 'verified' });
-            res.json({ success: true, message: 'User verified successfully' });
         } else if (action === 'reject') {
             kyc.status = 'rejected';
             kyc.rejectionReason = rejectionReason || 'No reason provided';
             kyc.verifiedAt = new Date();
             kyc.verifiedBy = admin.email;
             await User.findByIdAndUpdate(userId, { kycStatus: 'rejected' });
-            res.json({ success: true, message: 'KYC rejected' });
         } else {
-            res.status(400).json({ error: 'Invalid action' });
+            return res.status(400).json({ error: 'Invalid action' });
         }
-        
         await kyc.save();
+        res.json({ success: true, message: action === 'approve' ? 'User verified' : 'KYC rejected' });
     } catch (error) {
-        console.error(error);
         res.status(500).json({ error: 'Failed to process KYC' });
     }
 });
 
 app.delete('/api/admin/kyc/delete/:userId', authenticateToken, isAdmin, async (req, res) => {
     try {
-        const { userId } = req.params;
-        await KYC.findOneAndDelete({ userId });
-        await User.findByIdAndUpdate(userId, { kycStatus: 'not_submitted' });
+        await KYC.findOneAndDelete({ userId: req.params.userId });
+        await User.findByIdAndUpdate(req.params.userId, { kycStatus: 'not_submitted' });
         res.json({ success: true, message: 'KYC record deleted' });
     } catch (error) {
         res.status(500).json({ error: 'Failed to delete KYC' });
-    }
-});
-
-// ============= USER PROFILE =============
-app.get('/api/user/profile', authenticateToken, async (req, res) => {
-    try {
-        const user = await User.findById(req.user.id).select('-password');
-        const activeTrades = await Trade.find({ userId: req.user.id, status: 'active' }).sort({ startedAt: -1 });
-        const tradeHistory = await Trade.find({ userId: req.user.id, status: 'completed' }).sort({ endedAt: -1 }).limit(50);
-        const withdrawalHistory = await Withdrawal.find({ userId: req.user.id }).sort({ createdAt: -1 }).limit(20);
-        const kyc = await KYC.findOne({ userId: req.user.id });
-        res.json({ user, activeTrades, tradeHistory, withdrawalHistory, kyc });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch profile' });
     }
 });
 
@@ -382,15 +354,13 @@ app.get('/api/admin/wallet-addresses', authenticateToken, isAdmin, async (req, r
 app.post('/api/admin/wallet-addresses', authenticateToken, isAdmin, async (req, res) => {
     try {
         const { network, crypto, address } = req.body;
-        if (!network || !crypto || !address) {
-            return res.status(400).json({ error: 'Network, crypto, and address are required' });
-        }
+        if (!network || !crypto || !address) return res.status(400).json({ error: 'All fields required' });
         await WalletAddress.findOneAndUpdate(
-            { network: network },
+            { network },
             { network, crypto, address, isActive: true, updatedAt: new Date() },
             { upsert: true }
         );
-        res.json({ success: true, message: `Wallet address for ${network} saved successfully` });
+        res.json({ success: true, message: `Wallet for ${network} saved` });
     } catch (error) {
         res.status(500).json({ error: 'Failed to save wallet address' });
     }
@@ -398,11 +368,10 @@ app.post('/api/admin/wallet-addresses', authenticateToken, isAdmin, async (req, 
 
 app.delete('/api/admin/wallet-addresses/:network', authenticateToken, isAdmin, async (req, res) => {
     try {
-        const { network } = req.params;
-        await WalletAddress.findOneAndDelete({ network: network });
-        res.json({ success: true, message: `Wallet address for ${network} deleted successfully` });
+        await WalletAddress.findOneAndDelete({ network: req.params.network });
+        res.json({ success: true, message: 'Wallet deleted' });
     } catch (error) {
-        res.status(500).json({ error: 'Failed to delete wallet address' });
+        res.status(500).json({ error: 'Failed to delete wallet' });
     }
 });
 
@@ -411,262 +380,28 @@ app.post('/api/admin/wallet-addresses/:network/toggle', authenticateToken, isAdm
         const wallet = await WalletAddress.findOne({ network: req.params.network });
         if (!wallet) return res.status(404).json({ error: 'Wallet not found' });
         wallet.isActive = !wallet.isActive;
-        wallet.updatedAt = new Date();
         await wallet.save();
         res.json({ success: true, message: `Wallet ${wallet.isActive ? 'activated' : 'deactivated'}` });
     } catch (error) {
-        res.status(500).json({ error: 'Failed to toggle wallet status' });
+        res.status(500).json({ error: 'Failed to toggle wallet' });
     }
 });
 
-// ============= WITHDRAWAL MINIMUM ROUTES =============
-app.get('/api/user/withdrawal-min', authenticateToken, async (req, res) => {
-    try {
-        const user = await User.findById(req.user.id);
-        const globalSetting = await SystemSettings.findOne({ key: 'global_withdrawal_min' });
-        const minAmount = user.customWithdrawalMin || (globalSetting ? globalSetting.value : 50);
-        res.json({ minAmount });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to get withdrawal minimum' });
-    }
-});
-
-app.post('/api/admin/user/withdrawal-min/:userId', authenticateToken, isAdmin, async (req, res) => {
-    try {
-        const { minAmount } = req.body;
-        const user = await User.findById(req.params.userId);
-        if (!user) return res.status(404).json({ error: 'User not found' });
-        user.customWithdrawalMin = minAmount;
-        await user.save();
-        res.json({ success: true, message: `Withdrawal minimum set to $${minAmount} for ${user.fullName}` });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to set withdrawal minimum' });
-    }
-});
-
-app.get('/api/admin/global/withdrawal-min', authenticateToken, isAdmin, async (req, res) => {
-    try {
-        const setting = await SystemSettings.findOne({ key: 'global_withdrawal_min' });
-        res.json({ minAmount: setting ? setting.value : 50 });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to get global withdrawal minimum' });
-    }
-});
-
-app.post('/api/admin/global/withdrawal-min', authenticateToken, isAdmin, async (req, res) => {
-    try {
-        const { minAmount } = req.body;
-        await SystemSettings.findOneAndUpdate(
-            { key: 'global_withdrawal_min' },
-            { key: 'global_withdrawal_min', value: minAmount, updatedAt: new Date() },
-            { upsert: true }
-        );
-        res.json({ success: true, message: `Global withdrawal minimum set to $${minAmount}` });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to set global withdrawal minimum' });
-    }
-});
-
-// ============= AI PASSKEY ROUTES =============
-app.post('/api/admin/generate-passkey/:userId', authenticateToken, isAdmin, async (req, res) => {
-    try {
-        const user = await User.findById(req.params.userId);
-        if (!user) return res.status(404).json({ error: 'User not found' });
-        const newPasskey = generatePasskey();
-        user.aiApiKey = newPasskey;
-        await user.save();
-        res.json({ success: true, passkey: newPasskey });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to generate passkey' });
-    }
-});
-
-app.delete('/api/admin/delete-passkey/:userId', authenticateToken, isAdmin, async (req, res) => {
-    try {
-        const user = await User.findById(req.params.userId);
-        if (!user) return res.status(404).json({ error: 'User not found' });
-        user.aiApiKey = '';
-        await user.save();
-        res.json({ success: true });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to delete passkey' });
-    }
-});
-
-app.post('/api/ai/save-passkey', authenticateToken, async (req, res) => {
-    try {
-        const { passkey } = req.body;
-        if (!passkey) return res.status(400).json({ error: 'Passkey cannot be empty' });
-        await User.findByIdAndUpdate(req.user.id, { aiApiKey: passkey });
-        res.json({ success: true });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to save passkey' });
-    }
-});
-
-app.delete('/api/ai/delete-passkey', authenticateToken, async (req, res) => {
-    try {
-        await User.findByIdAndUpdate(req.user.id, { aiApiKey: '' });
-        res.json({ success: true });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to delete passkey' });
-    }
-});
-
-app.get('/api/ai/get-passkey', authenticateToken, async (req, res) => {
-    try {
-        const user = await User.findById(req.user.id);
-        res.json({ success: true, passkey: user.aiApiKey || '' });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to get passkey' });
-    }
-});
-
-// ============= TRADING FUNCTIONS =============
-function analyzeMarket(symbol, currentPrice, change24h, volume, volatility) {
-    const analysis = { decision: null, confidence: 0, reasons: [] };
-    const rsi = 30 + Math.random() * 70;
-    const macd = (Math.random() - 0.5) * 2;
-    analysis.reasons.push(`📊 RSI: ${rsi.toFixed(2)}`);
-    analysis.reasons.push(`📈 MACD: ${macd > 0 ? 'Bullish' : 'Bearish'}`);
-    let buyScore = 0, sellScore = 0;
-    if (rsi < 40) buyScore += 30;
-    if (rsi > 60) sellScore += 30;
-    if (macd > 0) buyScore += 25;
-    if (macd < 0) sellScore += 25;
-    if (buyScore > sellScore) {
-        analysis.decision = 'buy';
-        analysis.confidence = Math.min(95, 55 + (buyScore - sellScore));
-    } else {
-        analysis.decision = 'sell';
-        analysis.confidence = Math.min(95, 55 + (sellScore - buyScore));
-    }
-    return analysis;
-}
-
-async function updateActiveTrades() {
-    const activeTrades = await Trade.find({ status: 'active' });
-    const now = Date.now();
-    for (const trade of activeTrades) {
-        const startedAt = new Date(trade.startedAt).getTime();
-        const elapsed = now - startedAt;
-        if (elapsed >= trade.durationMs) {
-            const multiplier = calculateProfitMultiplier(trade.amount, trade.durationMs);
-            const profit = trade.amount * multiplier;
-            trade.profit = profit;
-            trade.status = 'completed';
-            trade.endedAt = new Date();
-            const user = await User.findById(trade.userId);
-            if (user) {
-                const amountToReturn = trade.amount + profit;
-                if (trade.isDemo) {
-                    user.demoBalance = user.demoBalance + amountToReturn;
-                } else {
-                    user.balance = user.balance + amountToReturn;
-                }
-                user.totalProfit = (user.totalProfit || 0) + profit;
-                user.totalTrades = (user.totalTrades || 0) + 1;
-                await user.save();
-            }
-        }
-        await trade.save();
-    }
-}
-setInterval(updateActiveTrades, 5000);
-
-app.post('/api/ai/start-trade', authenticateToken, async (req, res) => {
-    try {
-        const { symbol, symbolName, category, amount, leverage, duration, durationMs, passkey, isDemo, entryPrice } = req.body;
-        const user = await User.findById(req.user.id);
-        if (user.aiApiKey !== passkey) return res.status(400).json({ error: 'Invalid AI Passkey' });
-        const minAmount = isDemo ? 80 : 140;
-        if (amount < minAmount) return res.status(400).json({ error: `Minimum trade amount is $${minAmount} USD` });
-        const currentBalance = isDemo ? user.demoBalance : user.balance;
-        if (amount > currentBalance) return res.status(400).json({ error: 'Insufficient funds' });
-        let currentPrice = entryPrice || 50000;
-        try {
-            if (category === 'crypto') {
-                const response = await axios.get(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`);
-                currentPrice = parseFloat(response.data.lastPrice);
-            }
-        } catch (e) {}
-        const analysis = analyzeMarket(symbol, currentPrice, 0, 0, 0);
-        const side = analysis.decision;
-        if (isDemo) {
-            user.demoBalance = user.demoBalance - amount;
-        } else {
-            user.balance = user.balance - amount;
-        }
-        await user.save();
-        const trade = new Trade({
-            userId: user._id, isDemo: isDemo || false, symbol, symbolName, category, side,
-            amount, leverage, duration, durationMs, entryPrice: currentPrice,
-            analysis: analysis.reasons.join(' | '), aiPasskey: passkey, status: 'active'
-        });
-        await trade.save();
-        res.json({ success: true, trade, analysis: { decision: side, confidence: analysis.confidence, reasons: analysis.reasons, entryPrice: currentPrice, expectedProfit: amount * 0.88 } });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to start AI trade' });
-    }
-});
-
-app.post('/api/ai/stop-trade/:tradeId', authenticateToken, async (req, res) => {
-    try {
-        const trade = await Trade.findOne({ _id: req.params.tradeId, userId: req.user.id, status: 'active' });
-        if (!trade) return res.status(404).json({ error: 'Active trade not found' });
-        trade.status = 'stopped';
-        trade.endedAt = new Date();
-        const profit = trade.amount * 0.44;
-        trade.profit = profit;
-        const user = await User.findById(req.user.id);
-        if (user) {
-            const amountToReturn = trade.amount + profit;
-            if (trade.isDemo) {
-                user.demoBalance = user.demoBalance + amountToReturn;
-            } else {
-                user.balance = user.balance + amountToReturn;
-            }
-            await user.save();
-        }
-        await trade.save();
-        res.json({ success: true, profit: profit });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to stop trade' });
-    }
-});
-
-// ============= DEPOSIT REQUEST ROUTES =============
+// ============= DEPOSIT REQUESTS =============
 app.post('/api/deposit/request', authenticateToken, async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
-        
-        // Check KYC verification
-        if (user.kycStatus !== 'verified') {
-            return res.status(403).json({ error: 'Identity verification required. Please complete KYC verification in your profile before making a deposit.' });
-        }
-        
+        if (user.kycStatus !== 'verified') return res.status(403).json({ error: 'KYC verification required' });
         const { amount, network, crypto, walletAddress } = req.body;
-        if (amount < 60) return res.status(400).json({ error: 'Minimum deposit is $60 USD' });
-        
-        const depositRequest = new DepositRequest({
+        if (amount < 60) return res.status(400).json({ error: 'Minimum deposit $60' });
+        const deposit = new DepositRequest({
             userId: user._id, userName: user.fullName, userEmail: user.email,
-            amount, crypto: crypto || '', network: network || '', walletAddress: walletAddress || '',
-            transactionId: 'DEP_' + Date.now(), status: 'pending'
+            amount, crypto, network, walletAddress, transactionId: 'DEP_' + Date.now(), status: 'pending'
         });
-        await depositRequest.save();
-        res.json({ success: true, depositId: depositRequest._id });
+        await deposit.save();
+        res.json({ success: true, depositId: deposit._id });
     } catch (error) {
         res.status(500).json({ error: 'Failed to create deposit request' });
-    }
-});
-
-app.get('/api/deposit/status/:depositId', authenticateToken, async (req, res) => {
-    try {
-        const deposit = await DepositRequest.findOne({ _id: req.params.depositId, userId: req.user.id });
-        if (!deposit) return res.status(404).json({ error: 'Deposit request not found' });
-        res.json({ status: deposit.status, amount: deposit.amount });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to check deposit status' });
     }
 });
 
@@ -683,11 +418,11 @@ app.post('/api/admin/deposit-requests/:depositId/approve', authenticateToken, is
     try {
         const deposit = await DepositRequest.findById(req.params.depositId);
         if (!deposit) return res.status(404).json({ error: 'Deposit not found' });
-        if (deposit.status !== 'pending') return res.status(400).json({ error: 'Deposit already processed' });
+        if (deposit.status !== 'pending') return res.status(400).json({ error: 'Already processed' });
         const user = await User.findById(deposit.userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
-        user.balance = (user.balance || 0) + deposit.amount;
-        user.totalDeposits = (user.totalDeposits || 0) + deposit.amount;
+        user.balance += deposit.amount;
+        user.totalDeposits += deposit.amount;
         await user.save();
         deposit.status = 'completed';
         deposit.processedAt = new Date();
@@ -711,22 +446,22 @@ app.post('/api/admin/deposit-requests/:depositId/reject', authenticateToken, isA
     }
 });
 
-// ============= WITHDRAWAL ROUTES =============
+// ============= WITHDRAWALS =============
 app.post('/api/withdrawal/request', authenticateToken, async (req, res) => {
     try {
         const { amount, network, address } = req.body;
         const user = await User.findById(req.user.id);
-        const userMin = user.customWithdrawalMin || 50;
-        if (amount < userMin) return res.status(400).json({ error: `Minimum withdrawal is $${userMin} USD` });
-        const feeAmount = amount * 0.07;
+        const min = user.customWithdrawalMin || 50;
+        if (amount < min) return res.status(400).json({ error: `Minimum withdrawal $${min}` });
+        const fee = amount * 0.07;
         if (amount > user.balance) return res.status(400).json({ error: 'Insufficient balance' });
-        user.balance = user.balance - amount;
+        user.balance -= amount;
         await user.save();
-        const withdrawal = new Withdrawal({ userId: user._id, userName: user.fullName, amount, feeAmount, network, walletAddress: address, status: 'pending' });
+        const withdrawal = new Withdrawal({ userId: user._id, userName: user.fullName, amount, feeAmount: fee, network, walletAddress: address, status: 'pending' });
         await withdrawal.save();
         res.json({ success: true });
     } catch (error) {
-        res.status(500).json({ error: 'Failed to process withdrawal' });
+        res.status(500).json({ error: 'Withdrawal failed' });
     }
 });
 
@@ -743,24 +478,32 @@ app.post('/api/admin/withdrawals/:withdrawalId/process', authenticateToken, isAd
     try {
         const { status } = req.body;
         const withdrawal = await Withdrawal.findById(req.params.withdrawalId);
-        if (!withdrawal) return res.status(404).json({ error: 'Withdrawal not found' });
+        if (!withdrawal) return res.status(404).json({ error: 'Not found' });
         withdrawal.status = status;
         withdrawal.processedAt = new Date();
-        await withdrawal.save();
         if (status === 'rejected') {
             const user = await User.findById(withdrawal.userId);
-            if (user) {
-                user.balance = user.balance + withdrawal.amount;
-                await user.save();
-            }
+            if (user) user.balance += withdrawal.amount;
+            await user.save();
         }
+        await withdrawal.save();
         res.json({ success: true });
     } catch (error) {
         res.status(500).json({ error: 'Failed to process withdrawal' });
     }
 });
 
-// ============= ADMIN USERS ROUTES =============
+// ============= TRANSACTIONS =============
+app.get('/api/admin/transactions', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const transactions = await Transaction.find().sort({ createdAt: -1 }).limit(100);
+        res.json(transactions);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch transactions' });
+    }
+});
+
+// ============= ADMIN USERS =============
 app.get('/api/admin/users', authenticateToken, isAdmin, async (req, res) => {
     try {
         const users = await User.find({}, '-password').sort({ createdAt: -1 });
@@ -773,7 +516,6 @@ app.get('/api/admin/users', authenticateToken, isAdmin, async (req, res) => {
 app.get('/api/admin/users/:userId', authenticateToken, isAdmin, async (req, res) => {
     try {
         const user = await User.findById(req.params.userId).select('-password');
-        if (!user) return res.status(404).json({ error: 'User not found' });
         const transactions = await Transaction.find({ userId: req.params.userId }).sort({ createdAt: -1 }).limit(20);
         const kyc = await KYC.findOne({ userId: req.params.userId });
         res.json({ user, transactions, kyc });
@@ -784,21 +526,19 @@ app.get('/api/admin/users/:userId', authenticateToken, isAdmin, async (req, res)
 
 app.delete('/api/admin/users/:userId', authenticateToken, isAdmin, async (req, res) => {
     try {
-        const { userId } = req.params;
-        if (userId === req.user.id) return res.status(400).json({ error: 'You cannot delete your own admin account' });
-        const user = await User.findById(userId);
+        if (req.params.userId === req.user.id) return res.status(400).json({ error: 'Cannot delete yourself' });
+        const user = await User.findById(req.params.userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
-        if (user.isAdmin) return res.status(400).json({ error: 'Cannot delete other admin accounts' });
-        await Trade.deleteMany({ userId: userId });
-        await Transaction.deleteMany({ userId: userId });
-        await Withdrawal.deleteMany({ userId: userId });
-        await DepositRequest.deleteMany({ userId: userId });
-        await ChatMessage.deleteMany({ userId: userId });
-        await KYC.findOneAndDelete({ userId: userId });
-        await User.findByIdAndDelete(userId);
-        res.json({ success: true, message: `User ${user.fullName} (${user.email}) has been permanently deleted` });
+        if (user.isAdmin) return res.status(400).json({ error: 'Cannot delete admin' });
+        await Trade.deleteMany({ userId: req.params.userId });
+        await Transaction.deleteMany({ userId: req.params.userId });
+        await Withdrawal.deleteMany({ userId: req.params.userId });
+        await DepositRequest.deleteMany({ userId: req.params.userId });
+        await ChatMessage.deleteMany({ userId: req.params.userId });
+        await KYC.findOneAndDelete({ userId: req.params.userId });
+        await User.findByIdAndDelete(req.params.userId);
+        res.json({ success: true, message: `User ${user.fullName} deleted` });
     } catch (error) {
-        console.error('Error deleting user:', error);
         res.status(500).json({ error: 'Failed to delete user' });
     }
 });
@@ -806,15 +546,14 @@ app.delete('/api/admin/users/:userId', authenticateToken, isAdmin, async (req, r
 app.post('/api/admin/add-balance', authenticateToken, isAdmin, async (req, res) => {
     try {
         const { userId, amount, description } = req.body;
-        const admin = await User.findById(req.user.id);
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
-        user.balance = user.balance + amount;
-        user.totalDeposits = (user.totalDeposits || 0) + amount;
+        user.balance += amount;
+        user.totalDeposits += amount;
         await user.save();
-        const transaction = new Transaction({ userId: user._id, userName: user.fullName, type: 'admin_deposit', amount, transactionId: 'ADMIN_DEP_' + Date.now(), description: description || 'Admin deposit', adminName: admin.fullName });
+        const transaction = new Transaction({ userId, userName: user.fullName, type: 'admin_deposit', amount, transactionId: 'ADMIN_DEP_' + Date.now(), description: description || 'Admin deposit', adminName: req.user.email });
         await transaction.save();
-        res.json({ success: true, message: `Added $${amount} to ${user.fullName}` });
+        res.json({ success: true });
     } catch (error) {
         res.status(500).json({ error: 'Failed to add balance' });
     }
@@ -823,15 +562,14 @@ app.post('/api/admin/add-balance', authenticateToken, isAdmin, async (req, res) 
 app.post('/api/admin/deduct-balance', authenticateToken, isAdmin, async (req, res) => {
     try {
         const { userId, amount, description } = req.body;
-        const admin = await User.findById(req.user.id);
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
         if (user.balance < amount) return res.status(400).json({ error: 'Insufficient balance' });
-        user.balance = user.balance - amount;
+        user.balance -= amount;
         await user.save();
-        const transaction = new Transaction({ userId: user._id, userName: user.fullName, type: 'admin_deduct', amount, transactionId: 'ADMIN_WD_' + Date.now(), description: description || 'Admin deduction', adminName: admin.fullName });
+        const transaction = new Transaction({ userId, userName: user.fullName, type: 'admin_deduct', amount, transactionId: 'ADMIN_WD_' + Date.now(), description: description || 'Admin deduction', adminName: req.user.email });
         await transaction.save();
-        res.json({ success: true, message: `Deducted $${amount} from ${user.fullName}` });
+        res.json({ success: true });
     } catch (error) {
         res.status(500).json({ error: 'Failed to deduct balance' });
     }
@@ -845,16 +583,7 @@ app.put('/api/admin/users/:userId/toggle-status', authenticateToken, isAdmin, as
         await user.save();
         res.json({ success: true, message: `User ${user.isActive ? 'activated' : 'deactivated'}` });
     } catch (error) {
-        res.status(500).json({ error: 'Failed to update user status' });
-    }
-});
-
-app.get('/api/admin/transactions', authenticateToken, isAdmin, async (req, res) => {
-    try {
-        const transactions = await Transaction.find().sort({ createdAt: -1 }).limit(100);
-        res.json(transactions);
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch transactions' });
+        res.status(500).json({ error: 'Failed to toggle status' });
     }
 });
 
@@ -862,10 +591,10 @@ app.get('/api/admin/stats', authenticateToken, isAdmin, async (req, res) => {
     try {
         const totalUsers = await User.countDocuments();
         const activeUsers = await User.countDocuments({ isActive: true });
-        const totalBalance = await User.aggregate([{ $group: { _id: null, total: { $sum: '$balance' } } }]);
-        const totalProfit = await User.aggregate([{ $group: { _id: null, total: { $sum: '$totalProfit' } } }]);
+        const totalBalance = (await User.aggregate([{ $group: { _id: null, total: { $sum: '$balance' } } }]))[0]?.total || 0;
+        const totalProfit = (await User.aggregate([{ $group: { _id: null, total: { $sum: '$totalProfit' } } }]))[0]?.total || 0;
         const pendingKYC = await KYC.countDocuments({ status: 'pending' });
-        res.json({ totalUsers, activeUsers, totalBalance: totalBalance[0]?.total || 0, totalProfit: totalProfit[0]?.total || 0, pendingKYC });
+        res.json({ totalUsers, activeUsers, totalBalance, totalProfit, pendingKYC });
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch stats' });
     }
@@ -925,15 +654,7 @@ app.get('/api/admin/chat/users', authenticateToken, isAdmin, async (req, res) =>
                     userEmail: { $first: '$userEmail' },
                     lastMessage: { $first: '$message' },
                     lastMessageTime: { $first: '$createdAt' },
-                    unreadCount: {
-                        $sum: {
-                            $cond: [
-                                { $and: [{ $eq: ['$sender', 'user'] }, { $eq: ['$isRead', false] }] },
-                                1,
-                                0
-                            ]
-                        }
-                    }
+                    unreadCount: { $sum: { $cond: [{ $and: [{ $eq: ['$sender', 'user'] }, { $eq: ['$isRead', false] }] }, 1, 0] } }
                 }
             },
             { $sort: { lastMessageTime: -1 } }
@@ -969,53 +690,89 @@ app.post('/api/admin/chat/send', authenticateToken, isAdmin, async (req, res) =>
     }
 });
 
+// ============= AI PASSKEY (simplified) =============
+app.post('/api/ai/save-passkey', authenticateToken, async (req, res) => {
+    try {
+        const { passkey } = req.body;
+        if (!passkey) return res.status(400).json({ error: 'Passkey required' });
+        await User.findByIdAndUpdate(req.user.id, { aiApiKey: passkey });
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to save passkey' });
+    }
+});
+
+app.get('/api/ai/get-passkey', authenticateToken, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        res.json({ success: true, passkey: user.aiApiKey || '' });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to get passkey' });
+    }
+});
+
+app.delete('/api/ai/delete-passkey', authenticateToken, async (req, res) => {
+    try {
+        await User.findByIdAndUpdate(req.user.id, { aiApiKey: '' });
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to delete passkey' });
+    }
+});
+
+// ============= TRADING (simplified for demo) =============
+app.post('/api/ai/start-trade', authenticateToken, async (req, res) => {
+    try {
+        const { amount, isDemo, passkey, symbolName, duration } = req.body;
+        const user = await User.findById(req.user.id);
+        if (user.aiApiKey !== passkey) return res.status(400).json({ error: 'Invalid passkey' });
+        const min = isDemo ? 80 : 140;
+        if (amount < min) return res.status(400).json({ error: `Minimum trade $${min}` });
+        const balance = isDemo ? user.demoBalance : user.balance;
+        if (amount > balance) return res.status(400).json({ error: 'Insufficient funds' });
+        if (isDemo) user.demoBalance -= amount;
+        else user.balance -= amount;
+        await user.save();
+        const trade = new Trade({
+            userId: user._id, isDemo, symbol: 'BTCUSDT', symbolName: symbolName || 'Bitcoin',
+            category: 'crypto', side: 'buy', amount, leverage: 100, duration: duration || '1h',
+            durationMs: 3600000, entryPrice: 50000, status: 'active', aiPasskey: passkey
+        });
+        await trade.save();
+        res.json({ success: true, trade });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to start trade' });
+    }
+});
+
 // ============= INITIALIZATION =============
 async function createDefaultAdmin() {
-    try {
-        const adminExists = await User.findOne({ email: 'admin@lucidalgorithms.com' });
-        if (!adminExists) {
-            const hashedPassword = await bcrypt.hash('Admin123!', 10);
-            const admin = new User({
-                email: 'admin@lucidalgorithms.com', password: hashedPassword, fullName: 'System Administrator',
-                age: 30, country: 'United States', countryCode: '+1', phoneNumber: '1234567890',
-                employmentStatus: 'Employed', tradingExperience: 'Expert', fundsSource: 'Business Revenue',
-                termsAccepted: true, isAdmin: true, isActive: true, balance: 10000, demoBalance: 5000, aiApiKey: 'ADMIN2024KEY',
-                kycStatus: 'verified'
-            });
-            await admin.save();
-            console.log('✅ Default admin created');
-        }
-    } catch (error) {
-        console.error('Error creating admin:', error);
+    const adminExists = await User.findOne({ email: 'admin@lucidalgorithms.com' });
+    if (!adminExists) {
+        const hashed = await bcrypt.hash('Admin123!', 10);
+        const admin = new User({
+            email: 'admin@lucidalgorithms.com', password: hashed, fullName: 'System Administrator',
+            age: 30, country: 'United States', countryCode: '+1', phoneNumber: '1234567890',
+            employmentStatus: 'Employed', tradingExperience: 'Expert', fundsSource: 'Business Revenue',
+            termsAccepted: true, isAdmin: true, isActive: true, balance: 10000, demoBalance: 5000,
+            aiApiKey: 'ADMIN2024KEY', kycStatus: 'verified'
+        });
+        await admin.save();
+        console.log('✅ Default admin created');
     }
 }
 
 async function initDefaultWalletAddresses() {
     const count = await WalletAddress.countDocuments();
     if (count === 0) {
-        console.log('No wallet addresses found. Creating defaults...');
         const defaultAddresses = [
             { network: 'trc20', crypto: 'USDT', address: 'TRpMxesumMB6H7v4CZhKcnJZzjfnsXMSC3' },
             { network: 'bep20', crypto: 'USDT', address: '0x61f683a9a884c72a6f69f28201fb717254a7459c' }
         ];
-        for (const addr of defaultAddresses) {
-            await WalletAddress.create(addr);
-        }
+        for (const addr of defaultAddresses) await WalletAddress.create(addr);
         console.log('✅ Default wallet addresses created');
-    } else {
-        console.log(`✅ ${count} wallet addresses already exist, skipping defaults`);
     }
 }
-
-async function cleanupOldMessages() {
-    try {
-        const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
-        await ChatMessage.deleteMany({ createdAt: { $lt: twoDaysAgo } });
-    } catch (error) {
-        console.error('Error cleaning up messages:', error);
-    }
-}
-setInterval(cleanupOldMessages, 6 * 60 * 60 * 1000);
 
 // Serve HTML files
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
@@ -1031,7 +788,7 @@ app.get('/privacy', (req, res) => res.sendFile(path.join(__dirname, 'privacy.htm
 app.listen(PORT, async () => {
     await createDefaultAdmin();
     await initDefaultWalletAddresses();
-    console.log(`\n🚀 Server running on http://localhost:${PORT}`);
+    console.log(`\n🚀 Server running on port ${PORT}`);
     console.log(`🔐 Admin: admin@lucidalgorithms.com / Admin123!`);
-    console.log(`✅ KYC System Active - Users must verify identity before depositing`);
+    console.log(`✅ All endpoints active`);
 });
