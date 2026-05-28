@@ -49,7 +49,8 @@ const userSchema = new mongoose.Schema({
     termsAcceptedAt: { type: Date },
     isFromUSA: { type: String, default: 'no' },
     expectedDeposit: { type: String, default: '' },
-    aiApiKey: { type: String, default: '' }
+    aiApiKey: { type: String, default: '' },
+    kycStatus: { type: String, enum: ['not_submitted', 'pending', 'verified', 'rejected'], default: 'not_submitted' }
 });
 
 const tradeSchema = new mongoose.Schema({
@@ -141,6 +142,20 @@ const systemSettingsSchema = new mongoose.Schema({
     updatedAt: { type: Date, default: Date.now }
 });
 
+// KYC Schema
+const kycSchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
+    idType: { type: String, enum: ['passport', 'drivers_license', 'id_card'], required: true },
+    dateOfBirth: { type: Date, required: true },
+    fileName: { type: String, required: true },
+    fileType: { type: String, default: '' },
+    status: { type: String, enum: ['pending', 'verified', 'rejected'], default: 'pending' },
+    rejectionReason: { type: String, default: '' },
+    submittedAt: { type: Date, default: Date.now },
+    verifiedAt: { type: Date },
+    verifiedBy: { type: String }
+});
+
 const User = mongoose.model('User', userSchema);
 const Trade = mongoose.model('Trade', tradeSchema);
 const Transaction = mongoose.model('Transaction', transactionSchema);
@@ -149,6 +164,7 @@ const DepositRequest = mongoose.model('DepositRequest', depositRequestSchema);
 const ChatMessage = mongoose.model('ChatMessage', chatMessageSchema);
 const WalletAddress = mongoose.model('WalletAddress', walletAddressSchema);
 const SystemSettings = mongoose.model('SystemSettings', systemSettingsSchema);
+const KYC = mongoose.model('KYC', kycSchema);
 
 // ============= MIDDLEWARE =============
 const authenticateToken = (req, res, next) => {
@@ -198,11 +214,12 @@ app.post('/api/register', async (req, res) => {
             email, password: hashedPassword, fullName, age, country, countryCode, phoneNumber,
             employmentStatus, tradingExperience, fundsSource, termsAccepted, termsAcceptedAt: new Date(),
             isFromUSA: isFromUSA || 'no', expectedDeposit: expectedDeposit || '',
-            balance: 0, demoBalance: 5000, isAdmin: email === 'admin@lucidalgorithms.com'
+            balance: 0, demoBalance: 5000, isAdmin: email === 'admin@lucidalgorithms.com',
+            kycStatus: 'not_submitted'
         });
         await user.save();
         const token = jwt.sign({ id: user._id, email: user.email, isAdmin: user.isAdmin }, process.env.JWT_SECRET || 'lucid_algorithms_jwt_secret');
-        res.status(201).json({ success: true, token, user: { id: user._id, email: user.email, fullName: user.fullName, balance: user.balance, demoBalance: user.demoBalance, isAdmin: user.isAdmin } });
+        res.status(201).json({ success: true, token, user: { id: user._id, email: user.email, fullName: user.fullName, balance: user.balance, demoBalance: user.demoBalance, isAdmin: user.isAdmin, kycStatus: user.kycStatus } });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Registration failed' });
@@ -220,9 +237,112 @@ app.post('/api/login', async (req, res) => {
         user.lastLogin = new Date();
         await user.save();
         const token = jwt.sign({ id: user._id, email: user.email, isAdmin: user.isAdmin }, process.env.JWT_SECRET || 'lucid_algorithms_jwt_secret');
-        res.json({ success: true, token, user: { id: user._id, email: user.email, fullName: user.fullName, balance: user.balance, demoBalance: user.demoBalance, isAdmin: user.isAdmin } });
+        res.json({ success: true, token, user: { id: user._id, email: user.email, fullName: user.fullName, balance: user.balance, demoBalance: user.demoBalance, isAdmin: user.isAdmin, kycStatus: user.kycStatus } });
     } catch (error) {
         res.status(500).json({ error: 'Login failed' });
+    }
+});
+
+// ============= KYC ROUTES =============
+app.get('/api/kyc/status', authenticateToken, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select('kycStatus');
+        const kyc = await KYC.findOne({ userId: req.user.id });
+        res.json({ success: true, kycStatus: user.kycStatus, kycData: kyc });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to get KYC status' });
+    }
+});
+
+app.post('/api/kyc/submit', authenticateToken, async (req, res) => {
+    try {
+        const { idType, dateOfBirth, fileName, fileType } = req.body;
+        
+        if (!idType || !dateOfBirth || !fileName) {
+            return res.status(400).json({ error: 'All fields are required' });
+        }
+        
+        const existingKYC = await KYC.findOne({ userId: req.user.id });
+        if (existingKYC && existingKYC.status === 'verified') {
+            return res.status(400).json({ error: 'Your identity is already verified' });
+        }
+        
+        await KYC.findOneAndUpdate(
+            { userId: req.user.id },
+            { idType, dateOfBirth: new Date(dateOfBirth), fileName, fileType, status: 'pending', submittedAt: new Date(), rejectionReason: '' },
+            { upsert: true }
+        );
+        
+        await User.findByIdAndUpdate(req.user.id, { kycStatus: 'pending' });
+        
+        res.json({ success: true, message: 'KYC submitted successfully! Awaiting admin verification.' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to submit KYC' });
+    }
+});
+
+// Admin KYC Routes
+app.get('/api/admin/kyc/pending', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const pendingKYC = await KYC.find({ status: 'pending' }).populate('userId', 'fullName email');
+        res.json({ success: true, pendingKYC });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch pending KYC' });
+    }
+});
+
+app.get('/api/admin/kyc/all', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const allKYC = await KYC.find().populate('userId', 'fullName email').sort({ submittedAt: -1 });
+        res.json({ success: true, allKYC });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch KYC submissions' });
+    }
+});
+
+app.post('/api/admin/kyc/verify/:userId', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { action, rejectionReason } = req.body;
+        
+        const kyc = await KYC.findOne({ userId });
+        if (!kyc) return res.status(404).json({ error: 'KYC submission not found' });
+        
+        const admin = await User.findById(req.user.id);
+        
+        if (action === 'approve') {
+            kyc.status = 'verified';
+            kyc.verifiedAt = new Date();
+            kyc.verifiedBy = admin.email;
+            await User.findByIdAndUpdate(userId, { kycStatus: 'verified' });
+            res.json({ success: true, message: 'User verified successfully' });
+        } else if (action === 'reject') {
+            kyc.status = 'rejected';
+            kyc.rejectionReason = rejectionReason || 'No reason provided';
+            kyc.verifiedAt = new Date();
+            kyc.verifiedBy = admin.email;
+            await User.findByIdAndUpdate(userId, { kycStatus: 'rejected' });
+            res.json({ success: true, message: 'KYC rejected' });
+        } else {
+            res.status(400).json({ error: 'Invalid action' });
+        }
+        
+        await kyc.save();
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to process KYC' });
+    }
+});
+
+app.delete('/api/admin/kyc/delete/:userId', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const { userId } = req.params;
+        await KYC.findOneAndDelete({ userId });
+        await User.findByIdAndUpdate(userId, { kycStatus: 'not_submitted' });
+        res.json({ success: true, message: 'KYC record deleted' });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to delete KYC' });
     }
 });
 
@@ -233,7 +353,8 @@ app.get('/api/user/profile', authenticateToken, async (req, res) => {
         const activeTrades = await Trade.find({ userId: req.user.id, status: 'active' }).sort({ startedAt: -1 });
         const tradeHistory = await Trade.find({ userId: req.user.id, status: 'completed' }).sort({ endedAt: -1 }).limit(50);
         const withdrawalHistory = await Withdrawal.find({ userId: req.user.id }).sort({ createdAt: -1 }).limit(20);
-        res.json({ user, activeTrades, tradeHistory, withdrawalHistory });
+        const kyc = await KYC.findOne({ userId: req.user.id });
+        res.json({ user, activeTrades, tradeHistory, withdrawalHistory, kyc });
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch profile' });
     }
@@ -517,9 +638,16 @@ app.post('/api/ai/stop-trade/:tradeId', authenticateToken, async (req, res) => {
 // ============= DEPOSIT REQUEST ROUTES =============
 app.post('/api/deposit/request', authenticateToken, async (req, res) => {
     try {
-        const { amount, network, crypto, walletAddress } = req.body;
         const user = await User.findById(req.user.id);
+        
+        // Check KYC verification
+        if (user.kycStatus !== 'verified') {
+            return res.status(403).json({ error: 'Identity verification required. Please complete KYC verification in your profile before making a deposit.' });
+        }
+        
+        const { amount, network, crypto, walletAddress } = req.body;
         if (amount < 60) return res.status(400).json({ error: 'Minimum deposit is $60 USD' });
+        
         const depositRequest = new DepositRequest({
             userId: user._id, userName: user.fullName, userEmail: user.email,
             amount, crypto: crypto || '', network: network || '', walletAddress: walletAddress || '',
@@ -647,44 +775,28 @@ app.get('/api/admin/users/:userId', authenticateToken, isAdmin, async (req, res)
         const user = await User.findById(req.params.userId).select('-password');
         if (!user) return res.status(404).json({ error: 'User not found' });
         const transactions = await Transaction.find({ userId: req.params.userId }).sort({ createdAt: -1 }).limit(20);
-        res.json({ user, transactions });
+        const kyc = await KYC.findOne({ userId: req.params.userId });
+        res.json({ user, transactions, kyc });
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch user details' });
     }
 });
 
-// ============= DELETE USER ROUTE (NEW) =============
 app.delete('/api/admin/users/:userId', authenticateToken, isAdmin, async (req, res) => {
     try {
         const { userId } = req.params;
-        
-        // Don't allow deleting yourself
-        if (userId === req.user.id) {
-            return res.status(400).json({ error: 'You cannot delete your own admin account' });
-        }
-        
-        // Find the user
+        if (userId === req.user.id) return res.status(400).json({ error: 'You cannot delete your own admin account' });
         const user = await User.findById(userId);
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-        
-        // Don't allow deleting other admins
-        if (user.isAdmin) {
-            return res.status(400).json({ error: 'Cannot delete other admin accounts' });
-        }
-        
-        // Delete all user-related data
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        if (user.isAdmin) return res.status(400).json({ error: 'Cannot delete other admin accounts' });
         await Trade.deleteMany({ userId: userId });
         await Transaction.deleteMany({ userId: userId });
         await Withdrawal.deleteMany({ userId: userId });
         await DepositRequest.deleteMany({ userId: userId });
         await ChatMessage.deleteMany({ userId: userId });
-        
-        // Delete the user
+        await KYC.findOneAndDelete({ userId: userId });
         await User.findByIdAndDelete(userId);
-        
-        res.json({ success: true, message: `User ${user.fullName} (${user.email}) has been permanently deleted along with all their data.` });
+        res.json({ success: true, message: `User ${user.fullName} (${user.email}) has been permanently deleted` });
     } catch (error) {
         console.error('Error deleting user:', error);
         res.status(500).json({ error: 'Failed to delete user' });
@@ -752,7 +864,8 @@ app.get('/api/admin/stats', authenticateToken, isAdmin, async (req, res) => {
         const activeUsers = await User.countDocuments({ isActive: true });
         const totalBalance = await User.aggregate([{ $group: { _id: null, total: { $sum: '$balance' } } }]);
         const totalProfit = await User.aggregate([{ $group: { _id: null, total: { $sum: '$totalProfit' } } }]);
-        res.json({ totalUsers, activeUsers, totalBalance: totalBalance[0]?.total || 0, totalProfit: totalProfit[0]?.total || 0 });
+        const pendingKYC = await KYC.countDocuments({ status: 'pending' });
+        res.json({ totalUsers, activeUsers, totalBalance: totalBalance[0]?.total || 0, totalProfit: totalProfit[0]?.total || 0, pendingKYC });
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch stats' });
     }
@@ -866,7 +979,8 @@ async function createDefaultAdmin() {
                 email: 'admin@lucidalgorithms.com', password: hashedPassword, fullName: 'System Administrator',
                 age: 30, country: 'United States', countryCode: '+1', phoneNumber: '1234567890',
                 employmentStatus: 'Employed', tradingExperience: 'Expert', fundsSource: 'Business Revenue',
-                termsAccepted: true, isAdmin: true, isActive: true, balance: 10000, demoBalance: 5000, aiApiKey: 'ADMIN2024KEY'
+                termsAccepted: true, isAdmin: true, isActive: true, balance: 10000, demoBalance: 5000, aiApiKey: 'ADMIN2024KEY',
+                kycStatus: 'verified'
             });
             await admin.save();
             console.log('✅ Default admin created');
@@ -919,5 +1033,5 @@ app.listen(PORT, async () => {
     await initDefaultWalletAddresses();
     console.log(`\n🚀 Server running on http://localhost:${PORT}`);
     console.log(`🔐 Admin: admin@lucidalgorithms.com / Admin123!`);
-    console.log(`🗑️ Delete User endpoint available at: DELETE /api/admin/users/:userId`);
+    console.log(`✅ KYC System Active - Users must verify identity before depositing`);
 });
