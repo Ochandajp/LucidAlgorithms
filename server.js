@@ -106,7 +106,7 @@ const depositRequestSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     userName: { type: String, required: true },
     userEmail: { type: String, required: true },
-    amount: { type: Number, required: true, min: 60 },
+    amount: { type: Number, required: true, min: 50 },  // ✅ changed from 60 to 50
     crypto: { type: String, default: '' },
     network: { type: String, default: '' },
     walletAddress: { type: String, default: '' },
@@ -539,7 +539,8 @@ app.post('/api/deposit/request', authenticateToken, async (req, res) => {
             return res.status(403).json({ error: 'Identity verification required. Please complete KYC verification in your profile before making a deposit.' });
         }
         const { amount, network, crypto, walletAddress } = req.body;
-        if (amount < 60) return res.status(400).json({ error: 'Minimum deposit is $60 USD' });
+        // ✅ Changed minimum deposit from 60 to 50
+        if (amount < 50) return res.status(400).json({ error: 'Minimum deposit is $50 USD' });
         // Generate unique transaction ID
         const txId = 'DEP_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
         const depositRequest = new DepositRequest({
@@ -986,7 +987,7 @@ async function createSampleData() {
                 userId: user._id, userName: user.fullName, amount: 100, feeAmount: 7,
                 network: 'TRC20', walletAddress: 'TXxx...xxx', status: 'pending', createdAt: new Date()
             });
-            // Sample deposit request
+            // Sample deposit request (amount 200 is above 50, fine)
             await DepositRequest.create({
                 userId: user._id, userName: user.fullName, userEmail: user.email,
                 amount: 200, crypto: 'USDT', network: 'TRC20', walletAddress: 'TRpMxesumMB...',
