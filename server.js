@@ -106,7 +106,7 @@ const depositRequestSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     userName: { type: String, required: true },
     userEmail: { type: String, required: true },
-    amount: { type: Number, required: true, min: 50 },
+    amount: { type: Number, required: true, min: 50 },  // ✅ changed from 60 to 50
     crypto: { type: String, default: '' },
     network: { type: String, default: '' },
     walletAddress: { type: String, default: '' },
@@ -475,10 +475,8 @@ app.post('/api/ai/start-trade', authenticateToken, async (req, res) => {
         const { symbol, symbolName, category, amount, leverage, duration, durationMs, passkey, isDemo, entryPrice } = req.body;
         const user = await User.findById(req.user.id);
         if (user.aiApiKey !== passkey) return res.status(400).json({ error: 'Invalid AI Passkey' });
-        
-        // ✅ Only change: demo minimum reduced from 80 to 50
+        // ✅ CHANGED: Demo minimum trade from 80 to 50
         const minAmount = isDemo ? 50 : 140;
-        
         if (amount < minAmount) return res.status(400).json({ error: `Minimum trade amount is $${minAmount} USD` });
         const currentBalance = isDemo ? user.demoBalance : user.balance;
         if (amount > currentBalance) return res.status(400).json({ error: 'Insufficient funds' });
@@ -542,7 +540,9 @@ app.post('/api/deposit/request', authenticateToken, async (req, res) => {
             return res.status(403).json({ error: 'Identity verification required. Please complete KYC verification in your profile before making a deposit.' });
         }
         const { amount, network, crypto, walletAddress } = req.body;
+        // ✅ Changed minimum deposit from 60 to 50
         if (amount < 50) return res.status(400).json({ error: 'Minimum deposit is $50 USD' });
+        // Generate unique transaction ID
         const txId = 'DEP_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
         const depositRequest = new DepositRequest({
             userId: user._id, userName: user.fullName, userEmail: user.email,
@@ -553,6 +553,7 @@ app.post('/api/deposit/request', authenticateToken, async (req, res) => {
         res.json({ success: true, depositId: depositRequest._id });
     } catch (error) {
         if (error.code === 11000) {
+            // Duplicate key – retry with a new ID (very rare)
             const txId = 'DEP_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
             const depositRequest = new DepositRequest({
                 userId: user._id, userName: user.fullName, userEmail: user.email,
@@ -965,10 +966,12 @@ app.post('/api/admin/chat/send', authenticateToken, isAdmin, async (req, res) =>
     }
 });
 
-// ============= SAMPLE DATA GENERATOR =============
+// ============= SAMPLE DATA GENERATOR (safe, no duplicates) =============
 async function createSampleData() {
     try {
+        // Clean up any documents with null transactionId to prevent future errors
         await DepositRequest.deleteMany({ transactionId: null });
+        
         const sampleUser = await User.findOne({ email: 'sample@example.com' });
         if (!sampleUser) {
             const hashed = await bcrypt.hash('Sample123!', 10);
@@ -979,10 +982,29 @@ async function createSampleData() {
                 termsAccepted: true, balance: 1000, kycStatus: 'pending'
             });
             await user.save();
-            await Withdrawal.create({ userId: user._id, userName: user.fullName, amount: 100, feeAmount: 7, network: 'TRC20', walletAddress: 'TXxx...xxx', status: 'pending', createdAt: new Date() });
-            await DepositRequest.create({ userId: user._id, userName: user.fullName, userEmail: user.email, amount: 200, crypto: 'USDT', network: 'TRC20', walletAddress: 'TRpMxesumMB...', status: 'pending', createdAt: new Date(), transactionId: 'DEP_SAMPLE_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) });
-            await Transaction.create({ userId: user._id, userName: user.fullName, type: 'deposit', amount: 200, status: 'completed', transactionId: 'TXN_SAMPLE_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), createdAt: new Date() });
-            await KYC.create({ userId: user._id, idType: 'passport', dateOfBirth: new Date('1990-01-01'), fileName: 'passport_scan.pdf', status: 'pending', submittedAt: new Date() });
+
+            // Sample withdrawal
+            await Withdrawal.create({
+                userId: user._id, userName: user.fullName, amount: 100, feeAmount: 7,
+                network: 'TRC20', walletAddress: 'TXxx...xxx', status: 'pending', createdAt: new Date()
+            });
+            // Sample deposit request (amount 200 is above 50, fine)
+            await DepositRequest.create({
+                userId: user._id, userName: user.fullName, userEmail: user.email,
+                amount: 200, crypto: 'USDT', network: 'TRC20', walletAddress: 'TRpMxesumMB...',
+                status: 'pending', createdAt: new Date(),
+                transactionId: 'DEP_SAMPLE_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6)
+            });
+            // Sample transaction
+            await Transaction.create({
+                userId: user._id, userName: user.fullName, type: 'deposit', amount: 200,
+                status: 'completed', transactionId: 'TXN_SAMPLE_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), createdAt: new Date()
+            });
+            // Sample KYC
+            await KYC.create({
+                userId: user._id, idType: 'passport', dateOfBirth: new Date('1990-01-01'),
+                fileName: 'passport_scan.pdf', status: 'pending', submittedAt: new Date()
+            });
             console.log('✅ Sample test data created (email: sample@example.com, password: Sample123!)');
         }
     } catch (err) {
@@ -990,6 +1012,7 @@ async function createSampleData() {
     }
 }
 
+// ============= INITIALIZATION =============
 async function createDefaultAdmin() {
     try {
         const adminExists = await User.findOne({ email: 'admin@lucidalgorithms.com' });
@@ -1056,4 +1079,4 @@ app.listen(PORT, async () => {
     console.log(`🔐 Admin: admin@lucidalgorithms.com / Admin123!`);
     console.log(`✅ KYC System Active - Users must verify identity before depositing`);
     console.log(`📊 Sample user: sample@example.com / Sample123! (for testing withdrawals, deposits, KYC)`);
-}); 
+});
