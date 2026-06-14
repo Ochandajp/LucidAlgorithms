@@ -40,6 +40,7 @@ const userSchema = new mongoose.Schema({
     winRate: { type: Number, default: 100 },
     totalTrades: { type: Number, default: 0 },
     customWithdrawalMin: { type: Number, default: null },
+    customInvestmentMin: { type: Number, default: null },   // NEW: per-user real investment min
     createdAt: { type: Date, default: Date.now },
     lastLogin: { type: Date },
     isAdmin: { type: Boolean, default: false },
@@ -106,7 +107,7 @@ const depositRequestSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     userName: { type: String, required: true },
     userEmail: { type: String, required: true },
-    amount: { type: Number, required: true, min: 50 },  // ✅ changed from 60 to 50
+    amount: { type: Number, required: true, min: 50 },
     crypto: { type: String, default: '' },
     network: { type: String, default: '' },
     walletAddress: { type: String, default: '' },
@@ -363,6 +364,56 @@ app.post('/api/admin/global/withdrawal-min', authenticateToken, isAdmin, async (
     }
 });
 
+// ============= INVESTMENT MINIMUM ROUTES (NEW) =============
+// For real account only – demo always $50
+app.get('/api/user/investment-min', authenticateToken, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        const globalSetting = await SystemSettings.findOne({ key: 'global_investment_min' });
+        // Default to 140 if nothing set
+        const minAmount = user.customInvestmentMin || (globalSetting ? globalSetting.value : 140);
+        res.json({ minAmount });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to get investment minimum' });
+    }
+});
+
+app.post('/api/admin/user/investment-min/:userId', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const { minAmount } = req.body;
+        const user = await User.findById(req.params.userId);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        user.customInvestmentMin = minAmount;
+        await user.save();
+        res.json({ success: true, message: `Investment minimum set to $${minAmount} for ${user.fullName}` });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to set investment minimum' });
+    }
+});
+
+app.get('/api/admin/global/investment-min', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const setting = await SystemSettings.findOne({ key: 'global_investment_min' });
+        res.json({ minAmount: setting ? setting.value : 140 });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to get global investment minimum' });
+    }
+});
+
+app.post('/api/admin/global/investment-min', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const { minAmount } = req.body;
+        await SystemSettings.findOneAndUpdate(
+            { key: 'global_investment_min' },
+            { key: 'global_investment_min', value: minAmount, updatedAt: new Date() },
+            { upsert: true }
+        );
+        res.json({ success: true, message: `Global investment minimum set to $${minAmount}` });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to set global investment minimum' });
+    }
+});
+
 // ============= AI PASSKEY ROUTES =============
 app.post('/api/admin/generate-passkey/:userId', authenticateToken, isAdmin, async (req, res) => {
     try {
@@ -475,11 +526,23 @@ app.post('/api/ai/start-trade', authenticateToken, async (req, res) => {
         const { symbol, symbolName, category, amount, leverage, duration, durationMs, passkey, isDemo, entryPrice } = req.body;
         const user = await User.findById(req.user.id);
         if (user.aiApiKey !== passkey) return res.status(400).json({ error: 'Invalid AI Passkey' });
-        // ✅ CHANGED: Demo minimum trade from 80 to 50
-        const minAmount = isDemo ? 50 : 140;
+        
+        // Minimum amount logic
+        let minAmount;
+        if (isDemo) {
+            minAmount = 50; // Demo fixed at 50
+        } else {
+            // Get real account minimum (global or per-user)
+            const globalSetting = await SystemSettings.findOne({ key: 'global_investment_min' });
+            const globalMin = globalSetting ? globalSetting.value : 140;
+            minAmount = user.customInvestmentMin || globalMin;
+        }
+        
         if (amount < minAmount) return res.status(400).json({ error: `Minimum trade amount is $${minAmount} USD` });
+        
         const currentBalance = isDemo ? user.demoBalance : user.balance;
         if (amount > currentBalance) return res.status(400).json({ error: 'Insufficient funds' });
+        
         let currentPrice = entryPrice || 50000;
         try {
             if (category === 'crypto') {
@@ -487,6 +550,7 @@ app.post('/api/ai/start-trade', authenticateToken, async (req, res) => {
                 currentPrice = parseFloat(response.data.lastPrice);
             }
         } catch (e) {}
+        
         const analysis = analyzeMarket(symbol, currentPrice, 0, 0, 0);
         const side = analysis.decision;
         if (isDemo) {
@@ -540,9 +604,7 @@ app.post('/api/deposit/request', authenticateToken, async (req, res) => {
             return res.status(403).json({ error: 'Identity verification required. Please complete KYC verification in your profile before making a deposit.' });
         }
         const { amount, network, crypto, walletAddress } = req.body;
-        // ✅ Changed minimum deposit from 60 to 50
         if (amount < 50) return res.status(400).json({ error: 'Minimum deposit is $50 USD' });
-        // Generate unique transaction ID
         const txId = 'DEP_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
         const depositRequest = new DepositRequest({
             userId: user._id, userName: user.fullName, userEmail: user.email,
@@ -553,7 +615,6 @@ app.post('/api/deposit/request', authenticateToken, async (req, res) => {
         res.json({ success: true, depositId: depositRequest._id });
     } catch (error) {
         if (error.code === 11000) {
-            // Duplicate key – retry with a new ID (very rare)
             const txId = 'DEP_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
             const depositRequest = new DepositRequest({
                 userId: user._id, userName: user.fullName, userEmail: user.email,
@@ -969,7 +1030,6 @@ app.post('/api/admin/chat/send', authenticateToken, isAdmin, async (req, res) =>
 // ============= SAMPLE DATA GENERATOR (safe, no duplicates) =============
 async function createSampleData() {
     try {
-        // Clean up any documents with null transactionId to prevent future errors
         await DepositRequest.deleteMany({ transactionId: null });
         
         const sampleUser = await User.findOne({ email: 'sample@example.com' });
@@ -983,24 +1043,20 @@ async function createSampleData() {
             });
             await user.save();
 
-            // Sample withdrawal
             await Withdrawal.create({
                 userId: user._id, userName: user.fullName, amount: 100, feeAmount: 7,
                 network: 'TRC20', walletAddress: 'TXxx...xxx', status: 'pending', createdAt: new Date()
             });
-            // Sample deposit request (amount 200 is above 50, fine)
             await DepositRequest.create({
                 userId: user._id, userName: user.fullName, userEmail: user.email,
                 amount: 200, crypto: 'USDT', network: 'TRC20', walletAddress: 'TRpMxesumMB...',
                 status: 'pending', createdAt: new Date(),
                 transactionId: 'DEP_SAMPLE_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6)
             });
-            // Sample transaction
             await Transaction.create({
                 userId: user._id, userName: user.fullName, type: 'deposit', amount: 200,
                 status: 'completed', transactionId: 'TXN_SAMPLE_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), createdAt: new Date()
             });
-            // Sample KYC
             await KYC.create({
                 userId: user._id, idType: 'passport', dateOfBirth: new Date('1990-01-01'),
                 fileName: 'passport_scan.pdf', status: 'pending', submittedAt: new Date()
