@@ -41,7 +41,7 @@ const userSchema = new mongoose.Schema({
     totalTrades: { type: Number, default: 0 },
     customWithdrawalMin: { type: Number, default: null },
     customInvestmentMin: { type: Number, default: null },
-    customWalletAddresses: [{ address: String, network: String }],
+    customWalletAddresses: [{ address: String, network: String, crypto: String }],
     createdAt: { type: Date, default: Date.now },
     lastLogin: { type: Date },
     isAdmin: { type: Boolean, default: false },
@@ -265,12 +265,12 @@ app.get('/api/wallet-addresses', authenticateToken, async (req, res) => {
         const customWallets = user.customWalletAddresses || [];
         const addresses = [];
 
-        // If user has custom wallets, ONLY show custom wallets (replace normal ones)
+        // If user has custom wallets, ONLY show custom wallets
         if (customWallets.length > 0) {
             customWallets.forEach(w => {
                 addresses.push({
                     network: w.network || 'Custom',
-                    crypto: 'USDT',
+                    crypto: w.crypto || 'USDT',
                     address: w.address,
                     isActive: true,
                     isCustom: true
@@ -369,8 +369,7 @@ app.put('/api/admin/user/custom-wallets/:userId', authenticateToken, isAdmin, as
         const user = await User.findById(req.params.userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
         
-        // Filter out invalid entries (must have address and network)
-        const cleaned = addresses.filter(a => a && a.address && a.address.trim() !== '' && a.network && a.network.trim() !== '');
+        const cleaned = addresses.filter(a => a && a.address && a.address.trim() !== '' && a.network && a.network.trim() !== '' && a.crypto && a.crypto.trim() !== '');
         user.customWalletAddresses = cleaned;
         await user.save();
         res.json({
