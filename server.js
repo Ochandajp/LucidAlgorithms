@@ -40,7 +40,8 @@ const userSchema = new mongoose.Schema({
     winRate: { type: Number, default: 100 },
     totalTrades: { type: Number, default: 0 },
     customWithdrawalMin: { type: Number, default: null },
-    customInvestmentMin: { type: Number, default: null },   // NEW: per-user real investment min
+    customInvestmentMin: { type: Number, default: null },
+    customWalletAddress: { type: String, default: '' }, // NEW: Custom wallet for specific user
     createdAt: { type: Date, default: Date.now },
     lastLogin: { type: Date },
     isAdmin: { type: Boolean, default: false },
@@ -260,8 +261,26 @@ app.get('/api/user/profile', authenticateToken, async (req, res) => {
 // ============= WALLET ADDRESS ROUTES =============
 app.get('/api/wallet-addresses', authenticateToken, async (req, res) => {
     try {
+        const user = await User.findById(req.user.id);
+        
+        // Check if user has a custom wallet address
+        if (user.customWalletAddress && user.customWalletAddress !== '') {
+            return res.json({
+                success: true,
+                addresses: [{
+                    network: 'custom',
+                    crypto: 'USDT',
+                    address: user.customWalletAddress,
+                    isActive: true,
+                    isCustom: true
+                }],
+                isCustom: true
+            });
+        }
+        
+        // Otherwise return normal addresses
         const addresses = await WalletAddress.find({ isActive: true });
-        res.json({ success: true, addresses });
+        res.json({ success: true, addresses, isCustom: false });
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch wallet addresses' });
     }
@@ -316,6 +335,44 @@ app.post('/api/admin/wallet-addresses/:network/toggle', authenticateToken, isAdm
     }
 });
 
+// ============= CUSTOM WALLET ADDRESS ADMIN ROUTES =============
+
+// Set custom wallet address for a user
+app.post('/api/admin/user/custom-wallet/:userId', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const { walletAddress } = req.body;
+        const user = await User.findById(req.params.userId);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        
+        user.customWalletAddress = walletAddress || '';
+        await user.save();
+        
+        res.json({ 
+            success: true, 
+            message: walletAddress ? 'Custom wallet address set successfully' : 'Custom wallet address removed',
+            customWalletAddress: user.customWalletAddress
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to set custom wallet address' });
+    }
+});
+
+// Get custom wallet address for a user
+app.get('/api/admin/user/custom-wallet/:userId', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const user = await User.findById(req.params.userId).select('customWalletAddress fullName email');
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        
+        res.json({ 
+            success: true, 
+            customWalletAddress: user.customWalletAddress || '',
+            user: { fullName: user.fullName, email: user.email }
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to get custom wallet address' });
+    }
+});
+
 // ============= WITHDRAWAL MINIMUM ROUTES =============
 app.get('/api/user/withdrawal-min', authenticateToken, async (req, res) => {
     try {
@@ -364,13 +421,11 @@ app.post('/api/admin/global/withdrawal-min', authenticateToken, isAdmin, async (
     }
 });
 
-// ============= INVESTMENT MINIMUM ROUTES (NEW) =============
-// For real account only – demo always $50
+// ============= INVESTMENT MINIMUM ROUTES =============
 app.get('/api/user/investment-min', authenticateToken, async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
         const globalSetting = await SystemSettings.findOne({ key: 'global_investment_min' });
-        // Default to 140 if nothing set
         const minAmount = user.customInvestmentMin || (globalSetting ? globalSetting.value : 140);
         res.json({ minAmount });
     } catch (error) {
@@ -527,12 +582,10 @@ app.post('/api/ai/start-trade', authenticateToken, async (req, res) => {
         const user = await User.findById(req.user.id);
         if (user.aiApiKey !== passkey) return res.status(400).json({ error: 'Invalid AI Passkey' });
         
-        // Minimum amount logic
         let minAmount;
         if (isDemo) {
-            minAmount = 50; // Demo fixed at 50
+            minAmount = 50;
         } else {
-            // Get real account minimum (global or per-user)
             const globalSetting = await SystemSettings.findOne({ key: 'global_investment_min' });
             const globalMin = globalSetting ? globalSetting.value : 140;
             minAmount = user.customInvestmentMin || globalMin;
@@ -1027,7 +1080,7 @@ app.post('/api/admin/chat/send', authenticateToken, isAdmin, async (req, res) =>
     }
 });
 
-// ============= SAMPLE DATA GENERATOR (safe, no duplicates) =============
+// ============= SAMPLE DATA GENERATOR =============
 async function createSampleData() {
     try {
         await DepositRequest.deleteMany({ transactionId: null });
