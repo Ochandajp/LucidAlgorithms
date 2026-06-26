@@ -41,7 +41,7 @@ const userSchema = new mongoose.Schema({
     totalTrades: { type: Number, default: 0 },
     customWithdrawalMin: { type: Number, default: null },
     customInvestmentMin: { type: Number, default: null },
-    customWalletAddresses: { type: [String], default: [] }, // NEW: array of custom addresses
+    customWalletAddresses: [{ address: String, network: String }], // NEW: array of {address, network}
     createdAt: { type: Date, default: Date.now },
     lastLogin: { type: Date },
     isAdmin: { type: Boolean, default: false },
@@ -262,17 +262,17 @@ app.get('/api/user/profile', authenticateToken, async (req, res) => {
 app.get('/api/wallet-addresses', authenticateToken, async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
-        const customAddresses = user.customWalletAddresses || [];
+        const customWallets = user.customWalletAddresses || [];
         const addresses = [];
 
-        // Add custom addresses first (if any)
-        customAddresses.forEach(addr => {
+        // Add custom addresses first (with their own network)
+        customWallets.forEach(w => {
             addresses.push({
-                network: 'Custom',
+                network: w.network || 'Custom',
                 crypto: 'USDT',
-                address: addr,
+                address: w.address,
                 isActive: true,
-                isCustom: true // we keep flag but frontend won't use it for special styling
+                isCustom: true
             });
         });
 
@@ -368,8 +368,9 @@ app.put('/api/admin/user/custom-wallets/:userId', authenticateToken, isAdmin, as
         }
         const user = await User.findById(req.params.userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
-        // Filter out empty strings and duplicates
-        const cleaned = [...new Set(addresses.filter(a => a && a.trim() !== ''))];
+        
+        // Filter out invalid entries (must have address and network)
+        const cleaned = addresses.filter(a => a && a.address && a.address.trim() !== '' && a.network && a.network.trim() !== '');
         user.customWalletAddresses = cleaned;
         await user.save();
         res.json({
