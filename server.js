@@ -41,7 +41,7 @@ const userSchema = new mongoose.Schema({
     totalTrades: { type: Number, default: 0 },
     customWithdrawalMin: { type: Number, default: null },
     customInvestmentMin: { type: Number, default: null },
-    customWalletAddresses: [{ address: String, network: String }], // NEW: array of {address, network}
+    customWalletAddresses: [{ address: String, network: String }],
     createdAt: { type: Date, default: Date.now },
     lastLogin: { type: Date },
     isAdmin: { type: Boolean, default: false },
@@ -265,28 +265,30 @@ app.get('/api/wallet-addresses', authenticateToken, async (req, res) => {
         const customWallets = user.customWalletAddresses || [];
         const addresses = [];
 
-        // Add custom addresses first (with their own network)
-        customWallets.forEach(w => {
-            addresses.push({
-                network: w.network || 'Custom',
-                crypto: 'USDT',
-                address: w.address,
-                isActive: true,
-                isCustom: true
+        // If user has custom wallets, ONLY show custom wallets (replace normal ones)
+        if (customWallets.length > 0) {
+            customWallets.forEach(w => {
+                addresses.push({
+                    network: w.network || 'Custom',
+                    crypto: 'USDT',
+                    address: w.address,
+                    isActive: true,
+                    isCustom: true
+                });
             });
-        });
-
-        // Add normal active wallet addresses
-        const normalAddresses = await WalletAddress.find({ isActive: true });
-        normalAddresses.forEach(w => {
-            addresses.push({
-                network: w.network,
-                crypto: w.crypto,
-                address: w.address,
-                isActive: w.isActive,
-                isCustom: false
+        } else {
+            // Otherwise show normal active wallet addresses
+            const normalAddresses = await WalletAddress.find({ isActive: true });
+            normalAddresses.forEach(w => {
+                addresses.push({
+                    network: w.network,
+                    crypto: w.crypto,
+                    address: w.address,
+                    isActive: w.isActive,
+                    isCustom: false
+                });
             });
-        });
+        }
 
         res.json({ success: true, addresses });
     } catch (error) {
@@ -344,7 +346,6 @@ app.post('/api/admin/wallet-addresses/:network/toggle', authenticateToken, isAdm
 });
 
 // ============= CUSTOM WALLET ADDRESS ADMIN ROUTES =============
-// Get custom wallet addresses for a user
 app.get('/api/admin/user/custom-wallets/:userId', authenticateToken, isAdmin, async (req, res) => {
     try {
         const user = await User.findById(req.params.userId).select('customWalletAddresses fullName email');
@@ -359,7 +360,6 @@ app.get('/api/admin/user/custom-wallets/:userId', authenticateToken, isAdmin, as
     }
 });
 
-// Set custom wallet addresses (replace entire array)
 app.put('/api/admin/user/custom-wallets/:userId', authenticateToken, isAdmin, async (req, res) => {
     try {
         const { addresses } = req.body;
