@@ -41,7 +41,7 @@ const userSchema = new mongoose.Schema({
     totalTrades: { type: Number, default: 0 },
     customWithdrawalMin: { type: Number, default: null },
     customInvestmentMin: { type: Number, default: null },
-    customWalletAddress: { type: String, default: '' }, // NEW: Custom wallet for specific user
+    customWalletAddresses: { type: [String], default: [] }, // NEW: array of custom addresses
     createdAt: { type: Date, default: Date.now },
     lastLogin: { type: Date },
     isAdmin: { type: Boolean, default: false },
@@ -262,25 +262,33 @@ app.get('/api/user/profile', authenticateToken, async (req, res) => {
 app.get('/api/wallet-addresses', authenticateToken, async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
-        
-        // Check if user has a custom wallet address
-        if (user.customWalletAddress && user.customWalletAddress !== '') {
-            return res.json({
-                success: true,
-                addresses: [{
-                    network: 'custom',
-                    crypto: 'USDT',
-                    address: user.customWalletAddress,
-                    isActive: true,
-                    isCustom: true
-                }],
-                isCustom: true
+        const customAddresses = user.customWalletAddresses || [];
+        const addresses = [];
+
+        // Add custom addresses first (if any)
+        customAddresses.forEach(addr => {
+            addresses.push({
+                network: 'Custom',
+                crypto: 'USDT',
+                address: addr,
+                isActive: true,
+                isCustom: true // we keep flag but frontend won't use it for special styling
             });
-        }
-        
-        // Otherwise return normal addresses
-        const addresses = await WalletAddress.find({ isActive: true });
-        res.json({ success: true, addresses, isCustom: false });
+        });
+
+        // Add normal active wallet addresses
+        const normalAddresses = await WalletAddress.find({ isActive: true });
+        normalAddresses.forEach(w => {
+            addresses.push({
+                network: w.network,
+                crypto: w.crypto,
+                address: w.address,
+                isActive: w.isActive,
+                isCustom: false
+            });
+        });
+
+        res.json({ success: true, addresses });
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch wallet addresses' });
     }
@@ -336,40 +344,41 @@ app.post('/api/admin/wallet-addresses/:network/toggle', authenticateToken, isAdm
 });
 
 // ============= CUSTOM WALLET ADDRESS ADMIN ROUTES =============
-
-// Set custom wallet address for a user
-app.post('/api/admin/user/custom-wallet/:userId', authenticateToken, isAdmin, async (req, res) => {
+// Get custom wallet addresses for a user
+app.get('/api/admin/user/custom-wallets/:userId', authenticateToken, isAdmin, async (req, res) => {
     try {
-        const { walletAddress } = req.body;
-        const user = await User.findById(req.params.userId);
+        const user = await User.findById(req.params.userId).select('customWalletAddresses fullName email');
         if (!user) return res.status(404).json({ error: 'User not found' });
-        
-        user.customWalletAddress = walletAddress || '';
-        await user.save();
-        
-        res.json({ 
-            success: true, 
-            message: walletAddress ? 'Custom wallet address set successfully' : 'Custom wallet address removed',
-            customWalletAddress: user.customWalletAddress
-        });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to set custom wallet address' });
-    }
-});
-
-// Get custom wallet address for a user
-app.get('/api/admin/user/custom-wallet/:userId', authenticateToken, isAdmin, async (req, res) => {
-    try {
-        const user = await User.findById(req.params.userId).select('customWalletAddress fullName email');
-        if (!user) return res.status(404).json({ error: 'User not found' });
-        
-        res.json({ 
-            success: true, 
-            customWalletAddress: user.customWalletAddress || '',
+        res.json({
+            success: true,
+            addresses: user.customWalletAddresses || [],
             user: { fullName: user.fullName, email: user.email }
         });
     } catch (error) {
-        res.status(500).json({ error: 'Failed to get custom wallet address' });
+        res.status(500).json({ error: 'Failed to get custom wallets' });
+    }
+});
+
+// Set custom wallet addresses (replace entire array)
+app.put('/api/admin/user/custom-wallets/:userId', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const { addresses } = req.body;
+        if (!Array.isArray(addresses)) {
+            return res.status(400).json({ error: 'Addresses must be an array' });
+        }
+        const user = await User.findById(req.params.userId);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        // Filter out empty strings and duplicates
+        const cleaned = [...new Set(addresses.filter(a => a && a.trim() !== ''))];
+        user.customWalletAddresses = cleaned;
+        await user.save();
+        res.json({
+            success: true,
+            message: 'Custom wallet addresses updated',
+            addresses: user.customWalletAddresses
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to update custom wallets' });
     }
 });
 
